@@ -1,0 +1,948 @@
+{% extends 'base.html' %}
+
+
+{% block title %}
+
+    {% if edit_mode %}
+        Edit Customer Event
+    {% else %}
+        Add Customer Event
+    {% endif %}
+
+{% endblock %}
+
+
+{% block page_title %}
+
+    {% if edit_mode %}
+        Edit Customer Event
+    {% else %}
+        Add Customer Event
+    {% endif %}
+
+{% endblock %}
+
+
+{% block page_subtitle %}
+    Manage customer event details
+{% endblock %}
+
+
+{% block content %}
+
+<style>
+
+/* =================================
+   MAIN CARD
+================================= */
+
+.event-form-container {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+
+    padding: 22px;
+
+    box-shadow:
+        0 8px 24px rgba(15, 23, 42, 0.06),
+        0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+
+/* =================================
+   TITLE
+================================= */
+
+.event-form-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    font-size: 19px;
+    font-weight: 750;
+
+    color: #0f172a;
+
+    padding-bottom: 15px;
+    margin-bottom: 18px;
+
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.event-form-title i {
+    color: #2563eb;
+    font-size: 22px;
+}
+
+
+/* =================================
+   CUSTOMER CARD
+================================= */
+
+.customer-info-card {
+    background: linear-gradient(
+        135deg,
+        #eff6ff,
+        #f8fbff
+    );
+
+    border: 1px solid #dbeafe;
+    border-radius: 12px;
+
+    padding: 14px;
+
+    margin-bottom: 19px;
+}
+
+.customer-info-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    margin-bottom: 10px;
+
+    color: #1d4ed8;
+
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.customer-info-title i {
+    font-size: 15px;
+}
+
+
+/* =================================
+   CUSTOMER GRID
+================================= */
+
+.customer-info-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 9px;
+}
+
+
+/* =================================
+   INFO BOX
+================================= */
+
+.info-box {
+    min-width: 0;
+
+    background: #ffffff;
+
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+
+    padding: 9px 10px;
+}
+
+.info-label {
+    margin-bottom: 4px;
+
+    color: #64748b;
+
+    font-size: 8px;
+    font-weight: 750;
+
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.info-value {
+    color: #0f172a;
+
+    font-size: 12px;
+    font-weight: 650;
+
+    word-break: break-word;
+}
+
+
+/* =================================
+   PHONE
+================================= */
+
+.event-phone {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    min-width: 0;
+}
+
+.event-phone-code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+
+    min-height: 23px;
+
+    padding: 0 6px;
+
+    background: linear-gradient(
+        135deg,
+        #eff6ff,
+        #dbeafe
+    );
+
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+
+    color: #1d4ed8;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    white-space: nowrap;
+}
+
+.event-phone-code i {
+    font-size: 9px;
+}
+
+.event-phone-number {
+    color: #0f172a;
+
+    font-size: 11px;
+    font-weight: 650;
+
+    white-space: nowrap;
+}
+
+
+/* =================================
+   NOTIFICATION
+================================= */
+
+.notification-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 4px 8px;
+
+    border-radius: 14px;
+
+    font-size: 9px;
+    font-weight: 750;
+}
+
+.notification-whatsapp {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.notification-sms {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+
+/* =================================
+   FORM GROUP
+================================= */
+
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-label {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #334155;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.required {
+    color: #dc2626;
+}
+
+
+/* =================================
+   INPUT
+================================= */
+
+.form-control {
+    width: 100%;
+    min-height: 39px;
+
+    box-sizing: border-box;
+
+    padding: 8px 10px;
+
+    background: #ffffff;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+
+    color: #0f172a;
+
+    font-size: 12px;
+
+    outline: none;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+.form-control:hover {
+    border-color: #94a3b8;
+}
+
+.form-control:focus {
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.09);
+}
+
+textarea.form-control {
+    min-height: 82px;
+    resize: vertical;
+}
+
+
+/* =================================
+   EVENT NOTE
+================================= */
+
+.event-name-note {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    margin-top: 5px;
+    padding: 6px 8px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+
+    color: #64748b;
+
+    font-size: 9px;
+}
+
+.event-name-note i {
+    color: #3b82f6;
+    font-size: 10px;
+}
+
+
+/* =================================
+   ERROR
+================================= */
+
+.form-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+
+    margin-top: 5px;
+
+    color: #dc2626;
+
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.form-error i {
+    margin-top: 1px;
+    font-size: 11px;
+}
+
+
+/* =================================
+   CHECKBOX
+================================= */
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 2px 0;
+}
+
+.form-check input {
+    width: 16px;
+    height: 16px;
+
+    accent-color: #2563eb;
+
+    cursor: pointer;
+}
+
+.form-check label {
+    color: #475569;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+/* =================================
+   ACTIONS
+================================= */
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    gap: 8px;
+
+    margin-top: 20px;
+    padding-top: 15px;
+
+    border-top: 1px solid #e2e8f0;
+}
+
+
+/* =================================
+   BUTTONS
+================================= */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    min-height: 37px;
+
+    padding: 0 14px;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform .15s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+
+/* CANCEL */
+
+.btn-secondary {
+    background: #f8fafc;
+
+    color: #475569;
+
+    border: 1px solid #cbd5e1;
+}
+
+.btn-secondary:hover {
+    background: #f1f5f9;
+
+    border-color: #94a3b8;
+
+    color: #334155;
+
+    transform: translateY(-1px);
+}
+
+
+/* PRIMARY */
+
+.btn-primary {
+    background: linear-gradient(
+        135deg,
+        #3b82f6,
+        #2563eb
+    );
+
+    color: #ffffff;
+
+    border: 1px solid #2563eb;
+
+    box-shadow:
+        0 3px 9px rgba(37, 99, 235, 0.18);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(
+        135deg,
+        #2563eb,
+        #1d4ed8
+    );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 5px 13px rgba(37, 99, 235, 0.23);
+
+    transform: translateY(-1px);
+}
+
+
+/* =================================
+   MOBILE
+================================= */
+
+@media (max-width: 700px) {
+
+    .event-form-container {
+        padding: 17px;
+        border-radius: 13px;
+    }
+
+    .event-form-title {
+        font-size: 17px;
+        margin-bottom: 15px;
+        padding-bottom: 13px;
+    }
+
+    .customer-info-grid {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+
+    .customer-info-card {
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+
+}
+
+
+@media (max-width: 420px) {
+
+    .event-form-container {
+        padding: 14px;
+    }
+
+    .event-phone {
+        gap: 4px;
+    }
+
+    .event-phone-code {
+        padding: 0 5px;
+        font-size: 8px;
+    }
+
+    .event-phone-number {
+        font-size: 10px;
+    }
+
+}
+
+</style>
+
+
+<div class="event-form-container">
+
+
+    <!-- TITLE -->
+
+    <div class="event-form-title">
+
+        <i class="ph ph-calendar-plus"></i>
+
+        {% if edit_mode %}
+            Edit Customer Event
+        {% else %}
+            Add Customer Event
+        {% endif %}
+
+    </div>
+
+
+    <!-- CUSTOMER INFORMATION -->
+
+    <div class="customer-info-card">
+
+        <div class="customer-info-title">
+
+            <i class="ph ph-user-circle"></i>
+
+            Customer Information
+
+        </div>
+
+
+        <div class="customer-info-grid">
+
+
+            <!-- CUSTOMER NAME -->
+
+            <div class="info-box">
+
+                <div class="info-label">
+                    Customer Name
+                </div>
+
+                <div class="info-value">
+                    {{ customer.name }}
+                </div>
+
+            </div>
+
+
+            <!-- MOBILE NUMBER -->
+
+            <div class="info-box">
+
+                <div class="info-label">
+                    Mobile Number
+                </div>
+
+                <div class="info-value event-phone">
+
+                    {% if customer.branch.client.country.dial_code %}
+
+                        <span class="event-phone-code">
+
+                            <i class="ph ph-globe"></i>
+
+                            {{ customer.branch.client.country.dial_code }}
+
+                        </span>
+
+                    {% endif %}
+
+                    <span class="event-phone-number">
+                        {{ customer.phone }}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- NOTIFICATION -->
+
+            <div class="info-box">
+
+                <div class="info-label">
+                    Notification Method
+                </div>
+
+                <div class="info-value">
+
+                    {% if customer.notification_method == "WHATSAPP" %}
+
+                        <span class="notification-badge notification-whatsapp">
+
+                            <i class="ph ph-whatsapp-logo"></i>
+
+                            WhatsApp
+
+                        </span>
+
+                    {% elif customer.notification_method == "SMS" %}
+
+                        <span class="notification-badge notification-sms">
+
+                            <i class="ph ph-chat-text"></i>
+
+                            SMS
+
+                        </span>
+
+                    {% else %}
+
+                        {{ customer.get_notification_method_display }}
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- FORM -->
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+
+        <!-- EVENT NAME -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.event_name.id_for_label }}"
+                class="form-label"
+            >
+
+                Event Name
+
+                <span class="required">*</span>
+
+            </label>
+
+
+            {{ form.event_name }}
+
+
+            {% if form.event_name.errors %}
+
+                <div class="form-error">
+
+                    <i class="ph ph-warning-circle"></i>
+
+                    <div>
+
+                        {% for error in form.event_name.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <div class="event-name-note">
+
+                    <i class="ph ph-info"></i>
+
+                    Select an event from the Event Names master.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- EVENT DATE -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.event_date.id_for_label }}"
+                class="form-label"
+            >
+
+                Event Date
+
+                <span class="required">*</span>
+
+            </label>
+
+
+            {{ form.event_date }}
+
+
+            {% if form.event_date.errors %}
+
+                <div class="form-error">
+
+                    <i class="ph ph-warning-circle"></i>
+
+                    <div>
+
+                        {% for error in form.event_date.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- REPEAT -->
+
+        <div class="form-group">
+
+            <div class="form-check">
+
+                {{ form.repeat_yearly }}
+
+                <label
+                    for="{{ form.repeat_yearly.id_for_label }}"
+                >
+                    Repeat Every Year
+                </label>
+
+            </div>
+
+
+            {% if form.repeat_yearly.errors %}
+
+                <div class="form-error">
+
+                    <i class="ph ph-warning-circle"></i>
+
+                    <div>
+
+                        {% for error in form.repeat_yearly.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- NOTES -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.notes.id_for_label }}"
+                class="form-label"
+            >
+
+                Notes
+
+            </label>
+
+
+            {{ form.notes }}
+
+
+            {% if form.notes.errors %}
+
+                <div class="form-error">
+
+                    <i class="ph ph-warning-circle"></i>
+
+                    <div>
+
+                        {% for error in form.notes.errors %}
+
+                            <div>
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- NON FIELD ERRORS -->
+
+        {% if form.non_field_errors %}
+
+            <div class="form-error">
+
+                <i class="ph ph-warning-circle"></i>
+
+                <div>
+
+                    {% for error in form.non_field_errors %}
+
+                        <div>
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+        <!-- ACTIONS -->
+
+        <div class="form-actions">
+
+            <a
+                href="{% url 'customer_event_list' %}"
+                class="btn btn-secondary"
+            >
+
+                <i class="ph ph-x"></i>
+
+                Cancel
+
+            </a>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+
+                <i class="ph ph-check-circle"></i>
+
+                {% if edit_mode %}
+                    Update Event
+                {% else %}
+                    Save Event
+                {% endif %}
+
+            </button>
+
+        </div>
+
+
+    </form>
+
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,788 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Owner Details
+{% endblock %}
+
+{% block page_title %}
+    Owner Details
+{% endblock %}
+
+{% block page_subtitle %}
+    View owner information for this client
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.owner-page {
+    max-width: 950px;
+    margin: 0 auto;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.owner-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    margin-bottom: 16px;
+}
+
+.owner-page-header-left {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.owner-header-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: #eff6ff;
+    color: #2563eb;
+
+    font-size: 20px;
+}
+
+.owner-page-header h2 {
+    margin: 0;
+
+    color: #0f172a;
+
+    font-size: 19px;
+    font-weight: 750;
+}
+
+.owner-page-header p {
+    margin: 3px 0 0;
+
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+.owner-page-header p strong {
+    color: #2563eb;
+}
+
+
+/* =========================================================
+   MAIN CARD
+   ========================================================= */
+
+.owner-card {
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 15px;
+
+    padding: 22px;
+
+    box-shadow:
+        0 8px 28px rgba(15, 23, 42, 0.06);
+}
+
+
+/* =========================================================
+   CARD TITLE
+   ========================================================= */
+
+.owner-card-title {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    margin-bottom: 18px;
+
+    padding-bottom: 13px;
+
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.owner-card-title-icon {
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    font-size: 15px;
+}
+
+.owner-card-title h3 {
+    margin: 0;
+
+    color: #1e3a8a;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.owner-card-title span {
+    display: block;
+
+    margin-top: 1px;
+
+    color: #94a3b8;
+
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   DETAILS GRID
+   ========================================================= */
+
+.owner-details-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 12px 16px;
+}
+
+
+/* =========================================================
+   DETAIL ITEM
+   ========================================================= */
+
+.owner-detail {
+    min-width: 0;
+}
+
+.owner-detail-label {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #64748b;
+
+    font-size: 10px;
+
+    font-weight: 650;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.25px;
+}
+
+.owner-detail-value {
+    min-height: 39px;
+
+    display: flex;
+
+    align-items: center;
+
+    box-sizing: border-box;
+
+    padding: 8px 11px;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 8px;
+
+    background: #f8fafc;
+
+    color: #0f172a;
+
+    font-size: 12px;
+
+    font-weight: 550;
+
+    word-break: break-word;
+}
+
+
+/* =========================================================
+   COMPANY HIGHLIGHT
+   ========================================================= */
+
+.company-value {
+    background: #eff6ff;
+
+    border-color: #bfdbfe;
+
+    color: #1d4ed8;
+
+    font-weight: 650;
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.status-value {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    min-height: 30px;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+
+    font-weight: 650;
+}
+
+.status-value.active {
+    background: #ecfdf5;
+
+    border: 1px solid #a7f3d0;
+
+    color: #047857;
+}
+
+.status-value.inactive {
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    color: #dc2626;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: currentColor;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.owner-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-top: 20px;
+
+    padding-top: 15px;
+
+    border-top: 1px solid #e2e8f0;
+}
+
+.owner-btn {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    min-width: 105px;
+
+    padding: 9px 14px;
+
+    border-radius: 8px;
+
+    font-size: 11px;
+
+    font-weight: 650;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.owner-btn-primary {
+    background: #2563eb;
+
+    border: 1px solid #2563eb;
+
+    color: #ffffff;
+
+    box-shadow:
+        0 4px 12px rgba(37, 99, 235, 0.16);
+}
+
+.owner-btn-primary:hover {
+    background: #1d4ed8;
+
+    border-color: #1d4ed8;
+
+    color: #ffffff;
+
+    transform: translateY(-1px);
+}
+
+.owner-btn-secondary {
+    background: #ffffff;
+
+    border: 1px solid #cbd5e1;
+
+    color: #475569;
+}
+
+.owner-btn-secondary:hover {
+    background: #f8fafc;
+
+    border-color: #94a3b8;
+
+    color: #334155;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.owner-empty {
+    text-align: center;
+
+    padding: 38px 20px;
+}
+
+.owner-empty-icon {
+    width: 52px;
+    height: 52px;
+
+    margin: 0 auto 12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    font-size: 24px;
+}
+
+.owner-empty-title {
+    margin-bottom: 4px;
+
+    color: #0f172a;
+
+    font-size: 14px;
+
+    font-weight: 700;
+}
+
+.owner-empty-text {
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .owner-page-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .owner-page-header > div:last-child {
+        width: 100%;
+    }
+
+    .owner-page-header > div:last-child .owner-btn {
+        width: 100%;
+    }
+
+    .owner-card {
+        padding: 17px;
+    }
+
+    .owner-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .owner-actions {
+        flex-direction: column-reverse;
+    }
+
+    .owner-btn {
+        width: 100%;
+    }
+}
+
+</style>
+
+
+<div class="owner-page">
+
+
+<!-- =====================================================
+     PAGE HEADER
+     ===================================================== -->
+
+<div class="owner-page-header">
+
+    <div class="owner-page-header-left">
+
+        <div class="owner-header-icon">
+
+            <i class="ph ph-user-circle"></i>
+
+        </div>
+
+        <div>
+
+            <h2>
+                Owner Details
+            </h2>
+
+            <p>
+                Owner information for
+                <strong>
+                    {{ client.company_name }}
+                </strong>
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <a
+        href="{% url 'client_list' %}"
+        class="owner-btn owner-btn-secondary"
+    >
+        <i class="ph ph-arrow-left"></i>
+        Back to Clients
+    </a>
+
+</div>
+
+
+<!-- =====================================================
+     MAIN CARD
+     ===================================================== -->
+
+<div class="owner-card">
+
+
+{% if owner %}
+
+
+<!-- =====================================================
+     CARD HEADER
+     ===================================================== -->
+
+<div class="owner-card-title">
+
+    <div class="owner-card-title-icon">
+
+        <i class="ph ph-user"></i>
+
+    </div>
+
+    <div>
+
+        <h3>
+            Owner Information
+        </h3>
+
+        <span>
+            Account and contact details
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     DETAILS
+     ===================================================== -->
+
+<div class="owner-details-grid">
+
+
+    <!-- COMPANY -->
+
+    <div class="owner-detail">
+
+        <span class="owner-detail-label">
+            Company Name
+        </span>
+
+        <div class="owner-detail-value company-value">
+
+            <i
+                class="ph ph-buildings"
+                style="margin-right:7px;"
+            ></i>
+
+            {{ client.company_name }}
+
+        </div>
+
+    </div>
+
+
+    <!-- OWNER NAME -->
+
+    <div class="owner-detail">
+
+        <span class="owner-detail-label">
+            Owner Name
+        </span>
+
+        <div class="owner-detail-value">
+
+            <i
+                class="ph ph-user"
+                style="margin-right:7px;color:#64748b;"
+            ></i>
+
+            {% if owner.get_full_name %}
+
+                {{ owner.get_full_name }}
+
+            {% else %}
+
+                {{ owner.username }}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- USERNAME -->
+
+    <div class="owner-detail">
+
+        <span class="owner-detail-label">
+            Username
+        </span>
+
+        <div class="owner-detail-value">
+
+            <i
+                class="ph ph-identification-card"
+                style="margin-right:7px;color:#64748b;"
+            ></i>
+
+            {{ owner.username }}
+
+        </div>
+
+    </div>
+
+
+    <!-- EMAIL -->
+
+    <div class="owner-detail">
+
+        <span class="owner-detail-label">
+            Email
+        </span>
+
+        <div class="owner-detail-value">
+
+            <i
+                class="ph ph-envelope"
+                style="margin-right:7px;color:#64748b;"
+            ></i>
+
+            {% if owner.email %}
+
+                {{ owner.email }}
+
+            {% else %}
+
+                -
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- PHONE -->
+
+    <div class="owner-detail">
+
+        <span class="owner-detail-label">
+            Phone
+        </span>
+
+        <div class="owner-detail-value">
+
+            <i
+                class="ph ph-phone"
+                style="margin-right:7px;color:#64748b;"
+            ></i>
+
+            {% if owner.phone %}
+
+                {{ owner.phone }}
+
+            {% else %}
+
+                -
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- STATUS -->
+
+    <div class="owner-detail">
+
+        <span class="owner-detail-label">
+            Account Status
+        </span>
+
+        <div>
+
+            {% if owner.is_active %}
+
+                <span class="status-value active">
+
+                    <span class="status-dot"></span>
+
+                    Active
+
+                </span>
+
+            {% else %}
+
+                <span class="status-value inactive">
+
+                    <span class="status-dot"></span>
+
+                    Inactive
+
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     ACTIONS
+     ===================================================== -->
+
+<div class="owner-actions">
+
+    <a
+        href="{% url 'client_list' %}"
+        class="owner-btn owner-btn-secondary"
+    >
+
+        <i class="ph ph-arrow-left"></i>
+
+        Back
+
+    </a>
+
+
+    <a
+        href="{% url 'client_edit' client.id %}"
+        class="owner-btn owner-btn-primary"
+    >
+
+        <i class="ph ph-pencil-simple"></i>
+
+        Edit Client
+
+    </a>
+
+</div>
+
+
+{% else %}
+
+
+<!-- =====================================================
+     EMPTY STATE
+     ===================================================== -->
+
+<div class="owner-empty">
+
+    <div class="owner-empty-icon">
+
+        <i class="ph ph-user-circle"></i>
+
+    </div>
+
+    <div class="owner-empty-title">
+
+        No Owner Details Found
+
+    </div>
+
+    <div class="owner-empty-text">
+
+        This client does not have an owner account.
+
+    </div>
+
+</div>
+
+
+{% endif %}
+
+
+</div>
+
+</div>
+
+{% endblock %}

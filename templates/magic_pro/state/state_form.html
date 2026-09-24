@@ -1,0 +1,600 @@
+
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ title }} - Magic Pro
+{% endblock %}
+
+{% block page_title %}
+    {{ title }}
+{% endblock %}
+
+{% block page_subtitle %}
+    Manage state / province master data
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ================================
+   STATE FORM
+================================ */
+
+.state-form-wrapper {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+
+/* MAIN CARD */
+
+.state-form-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow:
+        0 10px 30px rgba(15, 23, 42, 0.06),
+        0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+
+/* HEADER */
+
+.state-form-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.state-form-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+
+    background: linear-gradient(
+        135deg,
+        #eff6ff,
+        #dbeafe
+    );
+
+    border: 1px solid #bfdbfe;
+
+    color: #2563eb;
+    font-size: 22px;
+
+    flex-shrink: 0;
+}
+
+.state-form-heading {
+    min-width: 0;
+}
+
+.state-form-heading h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 20px;
+    font-weight: 750;
+    line-height: 1.3;
+}
+
+.state-form-heading p {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 12px;
+}
+
+
+/* FORM */
+
+.state-form {
+    width: 100%;
+}
+
+
+/* FORM GROUP */
+
+.state-form-group {
+    margin-bottom: 20px;
+}
+
+.state-form-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    margin-bottom: 7px;
+
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.required {
+    color: #dc2626;
+}
+
+
+/* INPUTS */
+
+.state-form .form-control {
+    width: 100%;
+    min-height: 42px;
+
+    box-sizing: border-box;
+
+    padding: 10px 12px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #0f172a;
+
+    font-size: 13px;
+
+    outline: none;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+
+/* SELECT ARROW */
+
+.state-form select.form-control {
+    cursor: pointer;
+    appearance: auto;
+}
+
+
+/* HOVER */
+
+.state-form .form-control:hover {
+    border-color: #94a3b8;
+}
+
+
+/* FOCUS */
+
+.state-form .form-control:focus {
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.10);
+
+    background: #ffffff;
+}
+
+
+/* PLACEHOLDER */
+
+.state-form .form-control::placeholder {
+    color: #94a3b8;
+}
+
+
+/* HELP TEXT */
+
+.state-form-help {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    margin-top: 6px;
+
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+.state-form-help i {
+    color: #3b82f6;
+    font-size: 11px;
+}
+
+
+/* ERROR */
+
+.state-form-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+
+    margin-top: 6px;
+
+    color: #dc2626;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.state-form-error i {
+    margin-top: 1px;
+    font-size: 12px;
+}
+
+
+/* ERROR INPUT */
+
+.state-form .field-error {
+    border-color: #fca5a5;
+    background: #fffafa;
+}
+
+.state-form .field-error:focus {
+    border-color: #ef4444;
+
+    box-shadow:
+        0 0 0 3px rgba(239, 68, 68, 0.10);
+}
+
+
+/* SEPARATOR */
+
+.state-form-separator {
+    height: 1px;
+    background: #e5e7eb;
+
+    margin: 4px 0 22px;
+}
+
+
+/* ACTION AREA */
+
+.state-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 26px;
+    padding-top: 20px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+
+/* BUTTON BASE */
+
+.state-btn {
+    min-height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 17px;
+
+    border-radius: 9px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition:
+        transform .15s ease,
+        box-shadow .2s ease,
+        background .2s ease,
+        border-color .2s ease;
+}
+
+
+/* CANCEL */
+
+.state-btn-cancel {
+    background: #f8fafc;
+    color: #475569;
+
+    border: 1px solid #cbd5e1;
+}
+
+.state-btn-cancel:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #334155;
+
+    transform: translateY(-1px);
+}
+
+
+/* SAVE */
+
+.state-btn-save {
+    border: 1px solid #2563eb;
+
+    background: linear-gradient(
+        135deg,
+        #3b82f6,
+        #2563eb
+    );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 4px 12px rgba(37, 99, 235, 0.20);
+}
+
+.state-btn-save:hover {
+    background: linear-gradient(
+        135deg,
+        #2563eb,
+        #1d4ed8
+    );
+
+    box-shadow:
+        0 6px 16px rgba(37, 99, 235, 0.25);
+
+    transform: translateY(-1px);
+}
+
+.state-btn:active {
+    transform: translateY(0);
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 700px) {
+
+    .state-form-card {
+        padding: 20px;
+        border-radius: 14px;
+    }
+
+    .state-form-header {
+        margin-bottom: 20px;
+        padding-bottom: 17px;
+    }
+
+    .state-form-heading h2 {
+        font-size: 18px;
+    }
+
+    .state-form-heading p {
+        font-size: 11px;
+    }
+
+    .state-form-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    .state-form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .state-btn {
+        width: 100%;
+    }
+}
+
+
+@media (max-width: 420px) {
+
+    .state-form-card {
+        padding: 16px;
+    }
+
+    .state-form-group {
+        margin-bottom: 16px;
+    }
+
+    .state-form .form-control {
+        min-height: 40px;
+        font-size: 12px;
+    }
+
+    .state-form-label {
+        font-size: 11px;
+    }
+
+}
+
+</style>
+
+
+<div class="state-form-wrapper">
+
+    <div class="state-form-card">
+
+        <!-- HEADER -->
+
+        <div class="state-form-header">
+
+            <div class="state-form-icon">
+
+                <i class="ph ph-map-trifold"></i>
+
+            </div>
+
+            <div class="state-form-heading">
+
+                <h2>
+                    {{ title }}
+                </h2>
+
+                <p>
+                    Add or update state / province information
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- FORM -->
+
+        <form
+            method="POST"
+            class="state-form"
+        >
+
+            {% csrf_token %}
+
+
+            <!-- COUNTRY -->
+
+            <div class="state-form-group">
+
+                <label
+                    for="{{ form.country.id_for_label }}"
+                    class="state-form-label"
+                >
+
+                    Country
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+
+                {{ form.country }}
+
+
+                {% if form.country.errors %}
+
+                    {% for error in form.country.errors %}
+
+                        <div class="state-form-error">
+
+                            <i class="ph ph-warning-circle"></i>
+
+                            <span>
+                                {{ error }}
+                            </span>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="state-form-help">
+
+                        <i class="ph ph-info"></i>
+
+                        Select the country for this state or province.
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- SEPARATOR -->
+
+            <div class="state-form-separator"></div>
+
+
+            <!-- STATE NAME -->
+
+            <div class="state-form-group">
+
+                <label
+                    for="{{ form.name.id_for_label }}"
+                    class="state-form-label"
+                >
+
+                    State / Province
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+
+                {{ form.name }}
+
+
+                {% if form.name.errors %}
+
+                    {% for error in form.name.errors %}
+
+                        <div class="state-form-error">
+
+                            <i class="ph ph-warning-circle"></i>
+
+                            <span>
+                                {{ error }}
+                            </span>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="state-form-help">
+
+                        <i class="ph ph-info"></i>
+
+                        Enter the state or province name.
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="state-form-actions">
+
+                <a
+                    href="{% url 'state_list' %}"
+                    class="state-btn state-btn-cancel"
+                >
+
+                    <i class="ph ph-x"></i>
+
+                    Cancel
+
+                </a>
+
+
+                <button
+                    type="submit"
+                    class="state-btn state-btn-save"
+                >
+
+                    <i class="ph ph-check-circle"></i>
+
+                    {% if "Edit" in title %}
+                        Update State
+                    {% else %}
+                        Save State
+                    {% endif %}
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

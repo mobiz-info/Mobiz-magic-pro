@@ -1,194 +1,497 @@
 {% load static %}
+
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Parishudam Coconut Oil</title>
-    <link rel="icon" type="image/jpeg" href="{% static 'images/parishudam.jpeg' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Login | Magic Pro</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <script
+        src="https://unpkg.com/@phosphor-icons/web"
+    ></script>
+
+
     <style>
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+            font-family: "Inter", sans-serif;
         }
+
 
         body {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #1e293b 0%,
+                    #0f172a 100%
+                );
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             min-height: 100vh;
+
             padding: 20px;
+
         }
+
 
         .login-card {
-            background: white;
+
+            background: #ffffff;
+
             border-radius: 16px;
+
             width: 100%;
+
             max-width: 420px;
+
             padding: 40px 32px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+
+            box-shadow:
+                0 20px 25px -5px rgba(0, 0, 0, 0.3),
+                0 10px 10px -5px rgba(0, 0, 0, 0.2);
+
         }
+
 
         .brand-header {
+
             text-align: center;
+
             margin-bottom: 32px;
+
         }
 
-        .brand-header i {
-            font-size: 3rem;
-            color: #f59e0b;
+
+        .brand-icon {
+
+            width: 64px;
+
+            height: 64px;
+
+            margin: 0 auto 14px;
+
+            border-radius: 16px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background: #eef2ff;
+
+            color: #4f46e5;
+
         }
+
+
+        .brand-icon i {
+
+            font-size: 2rem;
+
+        }
+
 
         .brand-header h1 {
+
             font-size: 1.5rem;
+
             color: #0f172a;
+
             margin-top: 8px;
+
             font-weight: 700;
+
         }
+
 
         .brand-header p {
+
             color: #64748b;
+
             font-size: 0.85rem;
-            margin-top: 4px;
+
+            margin-top: 6px;
+
         }
+
 
         .form-group {
+
             margin-bottom: 20px;
+
         }
+
 
         .form-group label {
+
             display: block;
+
             font-size: 0.85rem;
+
             font-weight: 600;
+
             color: #334155;
+
             margin-bottom: 8px;
+
         }
+
 
         .input-wrapper {
+
             position: relative;
+
             display: flex;
+
             align-items: center;
+
         }
+
 
         .input-wrapper i {
+
             position: absolute;
+
             left: 14px;
+
             color: #94a3b8;
+
             font-size: 1.2rem;
+
+            pointer-events: none;
+
         }
+
 
         .input-wrapper input {
+
             width: 100%;
+
             padding: 12px 14px 12px 42px;
+
             border: 1px solid #cbd5e1;
+
             border-radius: 10px;
+
             font-size: 0.95rem;
+
             outline: none;
-            transition: all 0.2s;
+
+            background: #ffffff;
+
+            color: #0f172a;
+
+            transition:
+                border-color 0.2s ease,
+                box-shadow 0.2s ease;
+
         }
+
 
         .input-wrapper input:focus {
+
             border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+
+            box-shadow:
+                0 0 0 3px rgba(79, 70, 229, 0.15);
+
         }
 
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            background: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 10px;
+
+        .input-wrapper input::placeholder {
+
+            color: #94a3b8;
+
         }
 
-        .btn-login:hover {
-            background: #4338ca;
-        }
 
         .keep-login {
+
             display: flex;
+
             align-items: center;
+
             gap: 8px;
+
             margin-bottom: 6px;
+
         }
+
 
         .keep-login input[type="checkbox"] {
+
             width: 16px;
+
             height: 16px;
+
             accent-color: #4f46e5;
+
             cursor: pointer;
+
             flex-shrink: 0;
+
         }
+
 
         .keep-login label {
+
             font-size: 0.85rem;
+
             color: #475569;
+
             cursor: pointer;
+
             user-select: none;
+
         }
 
+
         .error-message {
+
             background: #fee2e2;
+
+            border: 1px solid #fecaca;
+
             color: #b91c1c;
+
             padding: 12px;
+
             border-radius: 8px;
+
             font-size: 0.85rem;
+
             margin-bottom: 20px;
+
             text-align: center;
+
         }
+
+
+        .btn-login {
+
+            width: 100%;
+
+            padding: 12px;
+
+            background: #4f46e5;
+
+            color: #ffffff;
+
+            border: none;
+
+            border-radius: 10px;
+
+            font-size: 1rem;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition: background 0.2s ease;
+
+            margin-top: 10px;
+
+        }
+
+
+        .btn-login:hover {
+
+            background: #4338ca;
+
+        }
+
+
+        .btn-login:active {
+
+            transform: translateY(1px);
+
+        }
+
+
+        @media (max-width: 480px) {
+
+            body {
+
+                padding: 15px;
+
+            }
+
+
+            .login-card {
+
+                padding: 32px 22px;
+
+                border-radius: 14px;
+
+            }
+
+        }
+
     </style>
+
 </head>
+
+
 <body>
 
     <div class="login-card">
+
+
+        <!-- BRAND -->
+
         <div class="brand-header">
-            <img src="{% static 'images/parishudam.jpeg' %}" alt="Parishudam Logo" style="height: 75px; width: auto; max-width: 220px; border-radius: 10px; object-fit: contain; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 12px; background: white; padding: 4px;">
-            <h1>Parishudam P&L</h1>
+
+            <div class="brand-icon">
+
+                <i class="ph ph-buildings"></i>
+
+            </div>
+
+            <h1>Magic Pro</h1>
+
             <p>Sign in to your account</p>
+
         </div>
 
+
+        <!-- ERROR -->
+
         {% if error %}
+
             <div class="error-message">
+
+                <i class="ph ph-warning-circle"></i>
+
                 {{ error }}
+
             </div>
+
         {% endif %}
 
+
+        <!-- LOGIN FORM -->
+
         <form method="POST">
+
             {% csrf_token %}
-            <div class="form-group">
-                <label>Username / Email</label>
-                <div class="input-wrapper">
-                    <i class="ph ph-user"></i>
-                    <input type="text" name="username" placeholder="Enter username" required autofocus>
-                </div>
-            </div>
+
+
+            <!-- USERNAME -->
 
             <div class="form-group">
-                <label>Password</label>
+
+                <label for="username">
+                    Username
+                </label>
+
+
                 <div class="input-wrapper">
-                    <i class="ph ph-lock-key"></i>
-                    <input type="password" name="password" placeholder="Enter password" required>
+
+                    <i class="ph ph-user"></i>
+
+
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter username"
+                        autocomplete="username"
+                        required
+                        autofocus
+                    >
+
                 </div>
+
             </div>
+
+
+            <!-- PASSWORD -->
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+
+                <div class="input-wrapper">
+
+                    <i class="ph ph-lock-key"></i>
+
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter password"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- KEEP LOGIN -->
 
             <div class="keep-login">
-                <input type="checkbox" name="keep_login" id="keep_login" value="1">
-                <label for="keep_login">Keep me logged in</label>
+
+                <input
+                    type="checkbox"
+                    name="keep_login"
+                    id="keep_login"
+                    value="1"
+                >
+
+                <label for="keep_login">
+                    Keep me logged in
+                </label>
+
             </div>
 
-            <button type="submit" class="btn-login">Sign In</button>
+
+            <!-- LOGIN BUTTON -->
+
+            <button
+                type="submit"
+                class="btn-login"
+            >
+
+                <i class="ph ph-sign-in"></i>
+
+                Sign In
+
+            </button>
+
         </form>
+
     </div>
 
 </body>
+
 </html>

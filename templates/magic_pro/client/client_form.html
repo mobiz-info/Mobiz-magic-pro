@@ -1,0 +1,1324 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block page_title %}
+    {{ title }}
+{% endblock %}
+
+{% block page_subtitle %}
+    Add or update company and owner information
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.client-page {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.client-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 26px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+}
+
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
+.client-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 22px;
+}
+
+.client-title-icon {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #eff6ff;
+    color: #2563eb;
+
+    font-size: 20px;
+}
+
+.client-title h2 {
+    margin: 0;
+
+    font-size: 20px;
+    font-weight: 750;
+
+    color: #0f172a;
+}
+
+.client-title p {
+    margin: 3px 0 0;
+
+    font-size: 11px;
+    color: #64748b;
+}
+
+
+/* =========================================================
+   SECTIONS
+   ========================================================= */
+
+.form-section {
+    margin-top: 20px;
+}
+
+.form-section-header {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    margin-bottom: 13px;
+}
+
+.section-icon {
+    width: 31px;
+    height: 31px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #eff6ff;
+    color: #2563eb;
+
+    font-size: 15px;
+}
+
+.form-section-header h3 {
+    margin: 0;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    color: #1e3a8a;
+}
+
+.form-section-header span {
+    display: block;
+
+    margin-top: 1px;
+
+    font-size: 10px;
+
+    color: #94a3b8;
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+.form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 13px 17px;
+}
+
+.form-group-full {
+    grid-column: 1 / -1;
+}
+
+
+/* =========================================================
+   FORM GROUP
+   ========================================================= */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+
+    font-size: 11px;
+    font-weight: 650;
+
+    color: #334155;
+}
+
+.form-control,
+.form-group input,
+.form-group select,
+.form-group textarea {
+
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 41px;
+
+    padding: 9px 11px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+
+    background: #ffffff;
+    color: #0f172a;
+
+    font-size: 12px;
+
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+.form-group textarea {
+    min-height: 78px;
+    resize: vertical;
+}
+
+.form-control:hover,
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+
+    border-color: #93c5fd;
+}
+
+.form-control:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.09);
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.form-error {
+
+    margin-top: 4px;
+
+    color: #dc2626;
+
+    font-size: 10px;
+
+    line-height: 1.4;
+}
+
+.general-error {
+
+    margin-bottom: 15px;
+
+    padding: 10px 13px;
+
+    border-radius: 8px;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    color: #dc2626;
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   SECTION LINE
+   ========================================================= */
+
+.section-line {
+
+    height: 1px;
+
+    background: #e2e8f0;
+
+    margin: 21px 0;
+}
+
+
+/* =========================================================
+   PHONE
+   ========================================================= */
+
+.phone-wrapper {
+
+    display: flex;
+
+    width: 100%;
+}
+
+.phone-code {
+
+    min-width: 62px;
+    height: 41px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 8px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #cbd5e1;
+    border-right: none;
+
+    border-radius: 8px 0 0 8px;
+
+    background: #f8fafc;
+
+    color: #94a3b8;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    transition: 0.2s ease;
+}
+
+.phone-code.active {
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    border-color: #93c5fd;
+}
+
+.phone-wrapper input {
+
+    flex: 1;
+
+    min-width: 0;
+
+    border-radius: 0 8px 8px 0 !important;
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.status-card {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 10px 13px;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 8px;
+
+    background: #f8fafc;
+}
+
+.status-card input[type="checkbox"] {
+
+    width: 16px;
+    height: 16px;
+
+    accent-color: #2563eb;
+
+    cursor: pointer;
+}
+
+.status-text {
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    color: #475569;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.form-actions {
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 9px;
+
+    margin-top: 23px;
+
+    padding-top: 17px;
+
+    border-top: 1px solid #e2e8f0;
+}
+
+.btn {
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    min-width: 105px;
+
+    padding: 10px 16px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    font-weight: 650;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+.btn-cancel {
+
+    background: #f8fafc;
+
+    border: 1px solid #cbd5e1;
+
+    color: #475569;
+}
+
+.btn-cancel:hover {
+
+    background: #f1f5f9;
+
+    border-color: #94a3b8;
+
+    color: #334155;
+}
+
+.btn-save {
+
+    background: #2563eb;
+
+    border: 1px solid #2563eb;
+
+    color: #ffffff;
+
+    box-shadow:
+        0 4px 12px rgba(37, 99, 235, 0.16);
+}
+
+.btn-save:hover {
+
+    background: #1d4ed8;
+
+    border-color: #1d4ed8;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 6px 16px rgba(37, 99, 235, 0.22);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .client-card {
+
+        padding: 18px;
+
+        border-radius: 13px;
+    }
+
+    .form-grid {
+
+        grid-template-columns: 1fr;
+    }
+
+    .form-group-full {
+
+        grid-column: auto;
+    }
+
+    .form-actions {
+
+        flex-direction: column-reverse;
+    }
+
+    .btn {
+
+        width: 100%;
+    }
+}
+
+</style>
+
+
+<div class="client-page">
+
+<div class="client-card">
+
+
+<!-- =====================================================
+     TITLE
+     ===================================================== -->
+
+<div class="client-title">
+
+    <div class="client-title-icon">
+
+        <i class="ph ph-buildings"></i>
+
+    </div>
+
+    <div>
+
+        <h2>
+            {{ title }}
+        </h2>
+
+        <p>
+            Create and manage company and owner details
+        </p>
+
+    </div>
+
+</div>
+
+
+<form
+    method="POST"
+    id="clientForm"
+>
+
+{% csrf_token %}
+
+
+<!-- =====================================================
+     GENERAL ERRORS
+     ===================================================== -->
+
+{% if form.non_field_errors %}
+
+<div class="general-error">
+
+    {% for error in form.non_field_errors %}
+
+        <div>
+
+            <i class="ph ph-warning-circle"></i>
+
+            {{ error }}
+
+        </div>
+
+    {% endfor %}
+
+</div>
+
+{% endif %}
+
+
+<!-- =====================================================
+     LOCATION INFORMATION
+     ===================================================== -->
+
+<div class="form-section">
+
+    <div class="form-section-header">
+
+        <div class="section-icon">
+
+            <i class="ph ph-map-pin"></i>
+
+        </div>
+
+        <div>
+
+            <h3>
+                Location Information
+            </h3>
+
+            <span>
+                Country and address location details
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="form-grid">
+
+
+        <!-- COUNTRY -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.country.id_for_label }}"
+            >
+                Country
+            </label>
+
+            <select
+                name="{{ form.country.html_name }}"
+                id="{{ form.country.id_for_label }}"
+                class="form-control"
+            >
+
+                <option value="">
+                    Select Country
+                </option>
+
+                {% for country in form.country.field.queryset %}
+
+                    <option
+                        value="{{ country.pk }}"
+                        data-dial-code="{{ country.dial_code|default:'' }}"
+                        {% if form.country.value|stringformat:"s" == country.pk|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ country.name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+
+            {% for error in form.country.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- STATE -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.state.id_for_label }}"
+            >
+                State / Province
+            </label>
+
+            {{ form.state }}
+
+            {% for error in form.state.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- DISTRICT -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.district.id_for_label }}"
+            >
+                District
+            </label>
+
+            {{ form.district }}
+
+            {% for error in form.district.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- AREA -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.area.id_for_label }}"
+            >
+                Area
+            </label>
+
+            {{ form.area }}
+
+            {% for error in form.area.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="section-line"></div>
+
+
+<!-- =====================================================
+     COMPANY INFORMATION
+     ===================================================== -->
+
+<div class="form-section">
+
+    <div class="form-section-header">
+
+        <div class="section-icon">
+
+            <i class="ph ph-buildings"></i>
+
+        </div>
+
+        <div>
+
+            <h3>
+                Company Information
+            </h3>
+
+            <span>
+                Basic company details
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="form-grid">
+
+
+        <!-- COMPANY NAME -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.company_name.id_for_label }}"
+            >
+                Company Name
+            </label>
+
+            {{ form.company_name }}
+
+            {% for error in form.company_name.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- BUSINESS TYPE -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.business_type.id_for_label }}"
+            >
+                Business Type
+            </label>
+
+            {{ form.business_type }}
+
+            {% for error in form.business_type.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- COMPANY EMAIL -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.email.id_for_label }}"
+            >
+                Company Email
+            </label>
+
+            {{ form.email }}
+
+            {% for error in form.email.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- COMPANY PHONE -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.phone.id_for_label }}"
+            >
+                Company Phone
+            </label>
+
+            <div class="phone-wrapper">
+
+                <div
+                    id="companyPhoneCode"
+                    class="phone-code"
+                >
+                    —
+                </div>
+
+                {{ form.phone }}
+
+            </div>
+
+            {% for error in form.phone.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- ADDRESS -->
+
+        <div class="form-group form-group-full">
+
+            <label
+                for="{{ form.address.id_for_label }}"
+            >
+                Address
+            </label>
+
+            {{ form.address }}
+
+            {% for error in form.address.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="section-line"></div>
+
+
+<!-- =====================================================
+     OWNER INFORMATION
+     ===================================================== -->
+
+<div class="form-section">
+
+    <div class="form-section-header">
+
+        <div class="section-icon">
+
+            <i class="ph ph-user-circle"></i>
+
+        </div>
+
+        <div>
+
+            <h3>
+                Owner Information
+            </h3>
+
+            <span>
+                Owner account and contact details
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="form-grid">
+
+
+        <!-- USERNAME -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.owner_username.id_for_label }}"
+            >
+                Owner Username
+            </label>
+
+            {{ form.owner_username }}
+
+            {% for error in form.owner_username.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- FIRST NAME -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.owner_first_name.id_for_label }}"
+            >
+                Owner First Name
+            </label>
+
+            {{ form.owner_first_name }}
+
+            {% for error in form.owner_first_name.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- LAST NAME -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.owner_last_name.id_for_label }}"
+            >
+                Owner Last Name
+            </label>
+
+            {{ form.owner_last_name }}
+
+            {% for error in form.owner_last_name.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- OWNER EMAIL -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.owner_email.id_for_label }}"
+            >
+                Owner Email
+            </label>
+
+            {{ form.owner_email }}
+
+            {% for error in form.owner_email.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- OWNER PHONE -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.owner_phone.id_for_label }}"
+            >
+                Owner Phone
+            </label>
+
+            <div class="phone-wrapper">
+
+                <div
+                    id="ownerPhoneCode"
+                    class="phone-code"
+                >
+                    —
+                </div>
+
+                {{ form.owner_phone }}
+
+            </div>
+
+            {% for error in form.owner_phone.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- PASSWORD -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.owner_password.id_for_label }}"
+            >
+                Owner Password
+            </label>
+
+            {{ form.owner_password }}
+
+            {% for error in form.owner_password.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- CONFIRM PASSWORD -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.owner_confirm_password.id_for_label }}"
+            >
+                Confirm Owner Password
+            </label>
+
+            {{ form.owner_confirm_password }}
+
+            {% for error in form.owner_confirm_password.errors %}
+
+                <div class="form-error">
+
+                    {{ error }}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="section-line"></div>
+
+
+<!-- =====================================================
+     CLIENT STATUS
+     ===================================================== -->
+
+<div class="form-section">
+
+    <div class="form-section-header">
+
+        <div class="section-icon">
+
+            <i class="ph ph-toggle-right"></i>
+
+        </div>
+
+        <div>
+
+            <h3>
+                Client Status
+            </h3>
+
+            <span>
+                Control client availability
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="status-card">
+
+        {{ form.status }}
+
+        <span class="status-text">
+            Active Client
+        </span>
+
+    </div>
+
+
+    {% for error in form.status.errors %}
+
+        <div class="form-error">
+
+            {{ error }}
+
+        </div>
+
+    {% endfor %}
+
+</div>
+
+
+<!-- =====================================================
+     ACTIONS
+     ===================================================== -->
+
+<div class="form-actions">
+
+    <a
+        href="{% url 'client_list' %}"
+        class="btn btn-cancel"
+    >
+
+        <i class="ph ph-x"></i>
+
+        Cancel
+
+    </a>
+
+
+    <button
+        type="submit"
+        class="btn btn-save"
+    >
+
+        <i class="ph ph-check-circle"></i>
+
+        {% if "Edit" in title %}
+            Update Client
+        {% else %}
+            Save Client
+        {% endif %}
+
+    </button>
+
+</div>
+
+
+</form>
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     COUNTRY → PHONE DIAL CODE
+     ===================================================== -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const countrySelect =
+            document.getElementById(
+                "{{ form.country.id_for_label }}"
+            );
+
+        const companyPhoneCode =
+            document.getElementById(
+                "companyPhoneCode"
+            );
+
+        const ownerPhoneCode =
+            document.getElementById(
+                "ownerPhoneCode"
+            );
+
+
+        if (!countrySelect) {
+            return;
+        }
+
+
+        function updateDialCode() {
+
+            const selectedOption =
+                countrySelect.options[
+                    countrySelect.selectedIndex
+                ];
+
+
+            const dialCode =
+                selectedOption
+                    ? selectedOption.getAttribute(
+                        "data-dial-code"
+                    )
+                    : "";
+
+
+            if (dialCode) {
+
+                companyPhoneCode.textContent =
+                    dialCode;
+
+                companyPhoneCode.classList.add(
+                    "active"
+                );
+
+
+                ownerPhoneCode.textContent =
+                    dialCode;
+
+                ownerPhoneCode.classList.add(
+                    "active"
+                );
+
+            } else {
+
+                companyPhoneCode.textContent =
+                    "—";
+
+                companyPhoneCode.classList.remove(
+                    "active"
+                );
+
+
+                ownerPhoneCode.textContent =
+                    "—";
+
+                ownerPhoneCode.classList.remove(
+                    "active"
+                );
+
+            }
+
+        }
+
+
+        /* Initial page load */
+
+        updateDialCode();
+
+
+        /* Country change */
+
+        countrySelect.addEventListener(
+            "change",
+            updateDialCode
+        );
+
+    }
+);
+
+</script>
+
+{% endblock %}

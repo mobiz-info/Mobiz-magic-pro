@@ -1,171 +1,344 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from core.models import Branch, StaffProfile, Product, ProductPackingSize,ProductMargin
-from operations.models import Expense,Vehicle
+
+from core.models import User
+
+from masters.models import (
+    BusinessType,
+    Country,
+    State,
+    District,
+    Area,
+    EventName,
+)
+
+from operations.models import (
+    Client,
+    Branch,
+    Customer,
+    CustomerEvent,
+)
+
+
+# =========================================================
+# USER SERIALIZER
+# =========================================================
 
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "role",
+        ]
+
+        read_only_fields = [
+            "id",
+        ]
+
+
+# =========================================================
+# BUSINESS TYPE SERIALIZER
+# =========================================================
+
+class BusinessTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BusinessType
+
+        fields = [
+            "id",
+            "name",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+        ]
+
+
+# =========================================================
+# COUNTRY SERIALIZER
+# =========================================================
+
+class CountrySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Country
+        fields = [
+            "id",
+            "name",
+            "currency_code",
+            "emblem",
+            "dial_code",
+        ]
+
+        read_only_fields = [
+            "id",
+        ]
+# =========================================================
+# STATE SERIALIZER
+# =========================================================
+
+class StateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = State
+
+        fields = [
+            "id",
+            "country",
+            "name",
+        ]
+
+        read_only_fields = [
+            "id",
+        ]
+
+
+# =========================================================
+# DISTRICT SERIALIZER
+# =========================================================
+
+class DistrictSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = District
+
+        fields = [
+            "id",
+            "state",
+            "name",
+        ]
+
+        read_only_fields = [
+            "id",
+        ]
+
+
+# =========================================================
+# AREA SERIALIZER
+# =========================================================
+
+class AreaSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Area
+
+        fields = [
+            "id",
+            "district",
+            "name",
+        ]
+
+        read_only_fields = [
+            "id",
+        ]
+
+
+# =========================================================
+# CLIENT SERIALIZER
+# =========================================================
+
+class ClientSerializer(serializers.ModelSerializer):
+
+    owner_details = UserSerializer(
+        source="owner",
+        read_only=True
+    )
+
+    class Meta:
+        model = Client
+
+        fields = [
+            "id",
+            "company_name",
+            "owner",
+            "owner_details",
+            "email",
+            "phone",
+            "address",
+            "business_type",
+            "country",
+            "state",
+            "district",
+            "area",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "owner_details",
+            "created_at",
+            "updated_at",
+        ]
+
+
+# =========================================================
+# BRANCH SERIALIZER
+# =========================================================
 
 class BranchSerializer(serializers.ModelSerializer):
+
+    user_details = UserSerializer(
+        source="user",
+        read_only=True
+    )
+
+    client_name = serializers.CharField(
+        source="client.company_name",
+        read_only=True
+    )
+
     class Meta:
         model = Branch
-        fields = '__all__'
 
-class StaffProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    branch = BranchSerializer(read_only=True)
-    branch_id = serializers.PrimaryKeyRelatedField(queryset=Branch.objects.all(), source='branch', write_only=True, required=False)
-
-    class Meta:
-        model = StaffProfile
-        fields = '__all__'
-
-
-class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'product_name', 'unit', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-    def validate_product_name(self, value):
-        value = value.strip()
-        if not value:
-            raise serializers.ValidationError("Product name is required.")
-        return value
-
-class ProductPackingSizeSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='product.product_name', read_only=True)
-    packing_unit_name = serializers.CharField(source='packing_unit.name', read_only=True)
-
-    class Meta:
-        model = ProductPackingSize
         fields = [
-            'id',
-            'product',
-            'product_name',
-            'packing_name',
-            'packing_value',
-            'packing_unit',
-            'packing_unit_name',
-            'base_qty_unit',
-            'selling_price',
-            'created_at',
-            'updated_at'
+            "id",
+            "user",
+            "user_details",
+            "client",
+            "client_name",
+            "name",
+            "phone",
+            "email",
+            "address",
+            "status",
+            "created_at",
+            "updated_at",
         ]
+
         read_only_fields = [
-            'id',
-            'product_name',
-            'packing_unit_name',
-            'created_at',
-            'updated_at'
+            "id",
+            "user_details",
+            "client_name",
+            "created_at",
+            "updated_at",
         ]
 
-    def validate_packing_name(self, value):
-        value = value.strip()
 
-        if not value:
-            raise serializers.ValidationError("Packing name is required.")
+# =========================================================
+# CUSTOMER SERIALIZER
+# =========================================================
 
-        return value
+class CustomerSerializer(serializers.ModelSerializer):
 
-    def validate_packing_value(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Packing value must be greater than 0.")
+    branch_name = serializers.CharField(
+        source="branch.name",
+        read_only=True
+    )
 
-        return value
-
-    def validate_base_qty_unit(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Base quantity must be greater than 0.")
-
-        return value
-
-    def validate_selling_price(self, value):
-        if value is not None and value < 0:
-            raise serializers.ValidationError("Selling price cannot be negative.")
-
-        return value
-    
-class ProductMarginSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='product.product_name', read_only=True)
-    packing_name = serializers.CharField(source='packing_size.packing_name', read_only=True)
+    company_name = serializers.CharField(
+        source="branch.client.company_name",
+        read_only=True
+    )
 
     class Meta:
-        model = ProductMargin
+        model = Customer
+
         fields = [
-            'id',
-            'product',
-            'product_name',
-            'packing_size',
-            'packing_name',
-            'margin_amount',
-            'effective_date',
-            'created_at',
-            'updated_at'
+            "id",
+            "branch",
+            "branch_name",
+            "company_name",
+            "name",
+            "phone",
+            "email",
+            "address",
+            "pincode",
+            "notification_method",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['id', 'product_name', 'packing_name', 'created_at', 'updated_at']
 
-    def validate_margin_amount(self, value):
-        if value < 0:
-            raise serializers.ValidationError("Margin amount cannot be negative.")
-        return value
-
-class VehicleSerializer(serializers.ModelSerializer):
-    branch_name = serializers.CharField(source='branch.name', read_only=True)
-
-    class Meta:
-        model = Vehicle
-        fields = [
-            'id',
-            'vehicle_number',
-            'vehicle_type',
-            'branch',
-            'branch_name',
-            'driver_name',
-            'driver_phone',
-            'created_at',
-            'updated_at'
-        ]
-        read_only_fields = ['id', 'branch_name', 'created_at', 'updated_at']
-
-class ExpenseSerializer(serializers.ModelSerializer):
-    branch_name = serializers.CharField(source='branch.name', read_only=True)
-    expense_head_name = serializers.CharField(source='expense_head.name', read_only=True)
-    staff_name = serializers.CharField(source='staff.username', read_only=True)
-
-    class Meta:
-        model = Expense
-        fields = [
-            'id',
-            'branch',
-            'branch_name',
-            'staff',
-            'staff_name',
-            'expense_date',
-            'expense_head',
-            'expense_head_name',
-            'amount',
-            'description',
-            'created_by',
-            'updated_by',
-            'created_at',
-            'updated_at',
-        ]
         read_only_fields = [
-            'id',
-            'branch_name',
-            'staff_name',
-            'created_by',
-            'updated_by',
-            'created_at',
-            'updated_at',
+            "id",
+            "branch_name",
+            "company_name",
+            "created_at",
+            "updated_at",
         ]
 
-    def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError(
-                "Amount must be greater than 0."
-            )
-        return value
+
+# =========================================================
+# EVENT NAME SERIALIZER
+# =========================================================
+
+class EventNameSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = EventName
+
+        fields = [
+            "id",
+            "name",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+        ]
+
+
+# =========================================================
+# CUSTOMER EVENT SERIALIZER
+# =========================================================
+
+class CustomerEventSerializer(serializers.ModelSerializer):
+
+    customer_name = serializers.CharField(
+        source="customer.name",
+        read_only=True
+    )
+
+    customer_phone = serializers.CharField(
+        source="customer.phone",
+        read_only=True
+    )
+
+    event_name_text = serializers.CharField(
+        source="event_name.name",
+        read_only=True
+    )
+
+    class Meta:
+        model = CustomerEvent
+
+        fields = [
+            "id",
+            "customer",
+            "customer_name",
+            "customer_phone",
+            "event_name",
+            "event_name_text",
+            "event_date",
+            "repeat_yearly",
+            "notes",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "customer_name",
+            "customer_phone",
+            "event_name_text",
+            "created_at",
+            "updated_at",
+        ]

@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}Country Master - Magic Pro{% endblock %}
+
+{% block page_title %}
+    Country Master
+{% endblock %}
+
+{% block breadcrumb_active %}
+    Country Management
+{% endblock %}
+
+{% block content %}
+
+<div class="list-container">
+
+    <!-- HEADER -->
+
+    <div class="list-header">
+
+        <form
+            method="GET"
+            class="search-wrapper"
+        >
+
+            <i class="ph ph-magnifying-glass search-icon"></i>
+
+            <input
+                type="text"
+                name="search"
+                value="{{ search }}"
+                placeholder="Search countries..."
+                class="search-input"
+            >
+
+            <button
+                type="submit"
+                style="display:none;"
+            ></button>
+
+        </form>
+
+
+        <!-- ADD COUNTRY -->
+
+        <a
+            href="{% url 'country_create' %}"
+            class="btn-create"
+        >
+
+            <i class="ph-bold ph-plus"></i>
+
+            Add Country
+
+        </a>
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <div style="overflow-x:auto;">
+
+        <table class="premium-table">
+
+            <thead>
+
+                <tr>
+
+                    <th style="width:70px;">
+                        #
+                    </th>
+
+                    <th>
+                        Country Name
+                    </th>
+
+                    <th>
+                        Currency Code
+                    </th>
+
+                    <th>
+                        Emblem
+                    </th>
+
+                    <th>
+                        Dial Code
+                    </th>
+
+                    <th
+                        style="
+                            width:120px;
+                            text-align:right;
+                        "
+                    >
+                        Action
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for obj in page_obj %}
+
+                <tr>
+
+                    <!-- NUMBER -->
+
+                    <td
+                        style="
+                            font-weight:500;
+                            color:#94a3b8;
+                        "
+                    >
+                        {{ forloop.counter }}
+                    </td>
+
+
+                    <!-- COUNTRY NAME -->
+
+                    <td
+                        style="
+                            font-weight:600;
+                            color:#1e293b;
+                        "
+                    >
+
+                        <div
+                            style="
+                                display:flex;
+                                align-items:center;
+                                gap:12px;
+                            "
+                        >
+
+                            <div
+                                style="
+                                    width:34px;
+                                    height:34px;
+                                    border-radius:50%;
+                                    background:#eff6ff;
+                                    display:flex;
+                                    align-items:center;
+                                    justify-content:center;
+                                    color:#2563eb;
+                                    border:1px solid #dbeafe;
+                                "
+                            >
+
+                                <i
+                                    class="ph-fill ph-globe"
+                                    style="font-size:1.05rem;"
+                                ></i>
+
+                            </div>
+
+
+                            <span>
+                                {{ obj.name }}
+                            </span>
+
+                        </div>
+
+                    </td>
+
+
+                    <!-- CURRENCY CODE -->
+
+                    <td
+                        style="
+                            font-weight:600;
+                            color:#475569;
+                        "
+                    >
+
+                        {% if obj.currency_code %}
+
+                            <span
+                                style="
+                                    display:inline-flex;
+                                    align-items:center;
+                                    padding:5px 10px;
+                                    background:#f8fafc;
+                                    border:1px solid #e2e8f0;
+                                    border-radius:7px;
+                                    font-size:0.78rem;
+                                    font-weight:600;
+                                    color:#475569;
+                                "
+                            >
+                                {{ obj.currency_code }}
+                            </span>
+
+                        {% else %}
+
+                            <span style="color:#94a3b8;">
+                                —
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- EMBLEM -->
+
+                    <td
+                        style="
+                            font-weight:700;
+                            color:#0f172a;
+                            font-size:1.2rem;
+                        "
+                    >
+
+                        {% if obj.emblem %}
+
+                            {{ obj.emblem }}
+
+                        {% else %}
+
+                            <span
+                                style="
+                                    color:#94a3b8;
+                                    font-size:0.9rem;
+                                "
+                            >
+                                —
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- DIAL CODE -->
+
+                    <td
+                        style="
+                            font-weight:600;
+                            color:#2563eb;
+                        "
+                    >
+
+                        {% if obj.dial_code %}
+
+                            <span
+                                style="
+                                    display:inline-flex;
+                                    align-items:center;
+                                    padding:5px 10px;
+                                    background:#eff6ff;
+                                    border:1px solid #dbeafe;
+                                    border-radius:7px;
+                                    font-size:0.78rem;
+                                    font-weight:700;
+                                    color:#2563eb;
+                                "
+                            >
+                                {{ obj.dial_code }}
+                            </span>
+
+                        {% else %}
+
+                            <span
+                                style="
+                                    color:#94a3b8;
+                                    font-weight:500;
+                                "
+                            >
+                                —
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- ACTION -->
+
+                    <td
+                        style="
+                            text-align:right;
+                        "
+                    >
+
+                        <div
+                            style="
+                                display:flex;
+                                gap:8px;
+                                justify-content:flex-end;
+                            "
+                        >
+
+                            <!-- EDIT -->
+
+                            <a
+                                href="{% url 'country_edit' obj.pk %}"
+                                class="action-btn edit"
+                                title="Edit Country"
+                            >
+
+                                <i
+                                    class="ph ph-pencil-simple"
+                                    style="font-size:1.2rem;"
+                                ></i>
+
+                            </a>
+
+
+                            <!-- DELETE -->
+
+                            <a
+                                href="{% url 'country_delete' obj.pk %}"
+                                onclick="return confirm('Are you sure you want to delete this country?')"
+                                class="action-btn delete"
+                                title="Delete Country"
+                            >
+
+                                <i
+                                    class="ph ph-trash"
+                                    style="font-size:1.2rem;"
+                                ></i>
+
+                            </a>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+
+                {% empty %}
+
+                <!-- EMPTY -->
+
+                <tr>
+
+                    <td
+                        colspan="6"
+                        style="
+                            text-align:center;
+                            padding:50px 40px;
+                            color:#94a3b8;
+                        "
+                    >
+
+                        <i
+                            class="ph ph-globe-hemisphere-west"
+                            style="
+                                font-size:3rem;
+                                margin-bottom:12px;
+                                color:#cbd5e1;
+                                display:block;
+                            "
+                        ></i>
+
+
+                        <div
+                            style="
+                                font-weight:600;
+                                color:#64748b;
+                                margin-bottom:5px;
+                            "
+                        >
+                            No countries found
+                        </div>
+
+
+                        <div
+                            style="
+                                font-size:0.8rem;
+                                color:#94a3b8;
+                            "
+                        >
+                            No countries match your search criteria.
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- PAGINATION -->
+
+    {% if page_obj.paginator.num_pages > 1 %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a
+                href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
+                class="page-link"
+            >
+                Previous
+            </a>
+
+        {% endif %}
+
+
+        <span
+            style="
+                font-weight:500;
+                color:#64748b;
+            "
+        >
+
+            Page
+
+            <span
+                style="
+                    color:#1e293b;
+                    font-weight:700;
+                "
+            >
+                {{ page_obj.number }}
+            </span>
+
+            of
+
+            {{ page_obj.paginator.num_pages }}
+
+        </span>
+
+
+        {% if page_obj.has_next %}
+
+            <a
+                href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}"
+                class="page-link"
+            >
+                Next
+            </a>
+
+        {% endif %}
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

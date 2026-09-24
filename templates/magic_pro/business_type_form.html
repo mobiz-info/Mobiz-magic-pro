@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if edit_mode %}
+        Edit Business Type - Magic Pro
+    {% else %}
+        Add Business Type - Magic Pro
+    {% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if edit_mode %}
+        Edit Business Type
+    {% else %}
+        Add Business Type
+    {% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+    Manage business type master data
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .business-type-form {
+        max-width: 650px;
+        margin: 0 auto;
+    }
+
+    .business-type-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 28px 30px;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .business-type-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding-bottom: 22px;
+        margin-bottom: 26px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .business-type-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        background: #eff6ff;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+
+    .business-type-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .business-type-header p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .business-type-form-group {
+        margin-bottom: 24px;
+    }
+
+    .business-type-form-group label {
+        display: block;
+        margin-bottom: 9px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .business-type-input {
+        width: 100%;
+        height: 46px;
+        padding: 0 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        background: #ffffff;
+        color: #0f172a;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    .business-type-input::placeholder {
+        color: #94a3b8;
+    }
+
+    .business-type-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
+    }
+
+    .business-type-help {
+        margin-top: 7px;
+        font-size: 12px;
+        color: #94a3b8;
+    }
+
+    .business-type-error {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 20px;
+        padding: 12px 14px;
+        border-radius: 9px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        font-size: 13px;
+    }
+
+    .business-type-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        padding-top: 22px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .business-type-btn {
+        height: 42px;
+        padding: 0 18px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .business-type-btn-secondary {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+    }
+
+    .business-type-btn-secondary:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .business-type-btn-primary {
+        border: 1px solid #3b82f6;
+        background: #3b82f6;
+        color: #ffffff;
+    }
+
+    .business-type-btn-primary:hover {
+        background: #2563eb;
+        border-color: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 5px 14px rgba(37, 99, 235, 0.20);
+    }
+
+    @media (max-width: 600px) {
+
+        .business-type-card {
+            padding: 22px 18px;
+        }
+
+        .business-type-actions {
+            flex-direction: column-reverse;
+            align-items: stretch;
+        }
+
+        .business-type-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="business-type-form">
+
+    <div class="business-type-card">
+
+        <!-- HEADER -->
+
+        <div class="business-type-header">
+
+            <div class="business-type-icon">
+                <i class="ph ph-buildings"></i>
+            </div>
+
+            <div>
+                <h3>
+                    {% if edit_mode %}
+                        Edit Business Type
+                    {% else %}
+                        Business Type Details
+                    {% endif %}
+                </h3>
+
+                <p>
+                    Add or update business type information
+                </p>
+            </div>
+
+        </div>
+
+
+        <!-- FORM -->
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+
+            {% if error %}
+
+            <div class="business-type-error">
+
+                <i class="ph ph-warning-circle"></i>
+
+                <span>{{ error }}</span>
+
+            </div>
+
+            {% endif %}
+
+
+            <!-- BUSINESS TYPE -->
+
+            <div class="business-type-form-group">
+
+                <label for="id_name">
+                    Business Type
+                    <span style="color:#dc2626;">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    id="id_name"
+                    name="name"
+                    class="business-type-input"
+                    value="{% if edit_mode %}{{ business_type.name }}{% else %}{{ name_value }}{% endif %}"
+                    placeholder="Example: Restaurant"
+                    required
+                >
+
+                <div class="business-type-help">
+                    Enter a unique business type name.
+                </div>
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="business-type-actions">
+
+                <a
+                    href="{% url 'business_type_list' %}"
+                    class="business-type-btn business-type-btn-secondary"
+                >
+                    <i class="ph ph-x"></i>
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="business-type-btn business-type-btn-primary"
+                >
+                    <i class="ph ph-check-circle"></i>
+
+                    {% if edit_mode %}
+                        Update Business Type
+                    {% else %}
+                        Save Business Type
+                    {% endif %}
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

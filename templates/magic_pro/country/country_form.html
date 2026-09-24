@@ -1,0 +1,576 @@
+{% extends 'base.html' %}
+
+{% block title %}Country - Magic Pro{% endblock %}
+
+{% block page_title %}
+    {{ title }}
+{% endblock %}
+
+{% block breadcrumb_active %}
+    Country
+{% endblock %}
+
+{% block content %}
+
+<div
+    class="premium-form-container"
+    style="
+        max-width:760px;
+        margin:0 auto;
+        background:#ffffff;
+        border:1px solid #e2e8f0;
+        border-radius:16px;
+        box-shadow:0 10px 30px rgba(15,23,42,0.06);
+        overflow:hidden;
+    "
+>
+
+    <!-- HEADER -->
+
+    <div
+        style="
+            padding:24px 28px;
+            background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);
+            border-bottom:1px solid #e2e8f0;
+        "
+    >
+
+        <div
+            style="
+                display:flex;
+                align-items:center;
+                gap:14px;
+            "
+        >
+
+            <div
+                style="
+                    width:48px;
+                    height:48px;
+                    border-radius:12px;
+                    background:#eff6ff;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:#2563eb;
+                    border:1px solid #dbeafe;
+                    box-shadow:0 4px 10px rgba(37,99,235,0.08);
+                "
+            >
+                <i
+                    class="ph ph-globe"
+                    style="font-size:1.6rem;"
+                ></i>
+            </div>
+
+            <div>
+
+                <div
+                    style="
+                        font-size:1.2rem;
+                        font-weight:700;
+                        color:#0f172a;
+                        letter-spacing:-0.01em;
+                    "
+                >
+                    {{ title }}
+                </div>
+
+                <div
+                    style="
+                        margin-top:4px;
+                        font-size:0.8rem;
+                        color:#64748b;
+                    "
+                >
+                    Add and manage country information
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FORM -->
+
+    <form
+        method="POST"
+        style="padding:28px;"
+    >
+
+        {% csrf_token %}
+
+
+        <!-- COUNTRY NAME -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.name.id_for_label }}"
+                style="
+                    display:block;
+                    margin-bottom:8px;
+                    font-size:0.88rem;
+                    font-weight:600;
+                    color:#334155;
+                "
+            >
+                Country Name
+                <span style="color:#ef4444;">*</span>
+            </label>
+
+            <div style="position:relative;">
+
+                <i
+                    class="ph ph-globe"
+                    style="
+                        position:absolute;
+                        left:14px;
+                        top:50%;
+                        transform:translateY(-50%);
+                        color:#94a3b8;
+                        font-size:1.05rem;
+                        pointer-events:none;
+                        z-index:2;
+                    "
+                ></i>
+
+                {{ form.name }}
+
+            </div>
+
+
+            {% if form.name.errors %}
+
+                <div
+                    style="
+                        margin-top:7px;
+                        color:#dc2626;
+                        font-size:13px;
+                    "
+                >
+                    {% for error in form.name.errors %}
+                        <div>
+                            <i class="ph ph-warning-circle"></i>
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+            {% endif %}
+
+
+            <div
+                style="
+                    margin-top:7px;
+                    color:#94a3b8;
+                    font-size:0.74rem;
+                "
+            >
+                Enter the official country name.
+            </div>
+
+        </div>
+
+
+        <!-- SEPARATOR -->
+
+        <div
+            style="
+                height:1px;
+                background:#f1f5f9;
+                margin:24px 0;
+            "
+        ></div>
+
+
+        <!-- CURRENCY CODE -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.currency_code.id_for_label }}"
+                style="
+                    display:block;
+                    margin-bottom:8px;
+                    font-size:0.88rem;
+                    font-weight:600;
+                    color:#334155;
+                "
+            >
+                Currency Code
+                <span style="color:#ef4444;">*</span>
+            </label>
+
+            <div style="position:relative;">
+
+                <i
+                    class="ph ph-currency-circle-dollar"
+                    style="
+                        position:absolute;
+                        left:14px;
+                        top:50%;
+                        transform:translateY(-50%);
+                        color:#94a3b8;
+                        font-size:1.05rem;
+                        pointer-events:none;
+                        z-index:2;
+                    "
+                ></i>
+
+                {{ form.currency_code }}
+
+            </div>
+
+
+            {% if form.currency_code.errors %}
+
+                <div
+                    style="
+                        margin-top:7px;
+                        color:#dc2626;
+                        font-size:13px;
+                    "
+                >
+                    {% for error in form.currency_code.errors %}
+                        <div>
+                            <i class="ph ph-warning-circle"></i>
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+            {% endif %}
+
+
+            <div
+                style="
+                    margin-top:7px;
+                    color:#94a3b8;
+                    font-size:0.74rem;
+                "
+            >
+                Example: INR, USD, AED, GBP.
+            </div>
+
+        </div>
+
+
+        <!-- SEPARATOR -->
+
+        <div
+            style="
+                height:1px;
+                background:#f1f5f9;
+                margin:24px 0;
+            "
+        ></div>
+
+
+        <!-- EMBLEM -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.emblem.id_for_label }}"
+                style="
+                    display:block;
+                    margin-bottom:8px;
+                    font-size:0.88rem;
+                    font-weight:600;
+                    color:#334155;
+                "
+            >
+                Emblem
+                <span style="color:#ef4444;">*</span>
+            </label>
+
+            <div style="position:relative;">
+
+                <i
+                    class="ph ph-flag"
+                    style="
+                        position:absolute;
+                        left:14px;
+                        top:50%;
+                        transform:translateY(-50%);
+                        color:#94a3b8;
+                        font-size:1.05rem;
+                        pointer-events:none;
+                        z-index:2;
+                    "
+                ></i>
+
+                {{ form.emblem }}
+
+            </div>
+
+
+            {% if form.emblem.errors %}
+
+                <div
+                    style="
+                        margin-top:7px;
+                        color:#dc2626;
+                        font-size:13px;
+                    "
+                >
+                    {% for error in form.emblem.errors %}
+                        <div>
+                            <i class="ph ph-warning-circle"></i>
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+            {% endif %}
+
+
+            <div
+                style="
+                    margin-top:7px;
+                    color:#94a3b8;
+                    font-size:0.74rem;
+                "
+            >
+                Enter the country emblem or flag emoji.
+                Example: 🇮🇳
+            </div>
+
+        </div>
+
+
+        <!-- SEPARATOR -->
+
+        <div
+            style="
+                height:1px;
+                background:#f1f5f9;
+                margin:24px 0;
+            "
+        ></div>
+
+
+        <!-- DIAL CODE -->
+
+        <div class="form-group">
+
+            <label
+                for="{{ form.dial_code.id_for_label }}"
+                style="
+                    display:block;
+                    margin-bottom:8px;
+                    font-size:0.88rem;
+                    font-weight:600;
+                    color:#334155;
+                "
+            >
+                Dial Code
+                <span style="color:#ef4444;">*</span>
+            </label>
+
+            <div style="position:relative;">
+
+                <i
+                    class="ph ph-phone"
+                    style="
+                        position:absolute;
+                        left:14px;
+                        top:50%;
+                        transform:translateY(-50%);
+                        color:#94a3b8;
+                        font-size:1.05rem;
+                        pointer-events:none;
+                        z-index:2;
+                    "
+                ></i>
+
+                {{ form.dial_code }}
+
+            </div>
+
+
+            {% if form.dial_code.errors %}
+
+                <div
+                    style="
+                        margin-top:7px;
+                        color:#dc2626;
+                        font-size:13px;
+                    "
+                >
+                    {% for error in form.dial_code.errors %}
+                        <div>
+                            <i class="ph ph-warning-circle"></i>
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+            {% endif %}
+
+
+            <div
+                style="
+                    margin-top:7px;
+                    color:#94a3b8;
+                    font-size:0.74rem;
+                "
+            >
+                Enter the international country calling code.
+                Example: +91, +971, +44.
+            </div>
+
+        </div>
+
+
+        <!-- ACTION AREA -->
+
+        <div
+            style="
+                margin-top:32px;
+                padding-top:22px;
+                border-top:1px solid #e2e8f0;
+            "
+        >
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:flex-end;
+                    align-items:center;
+                    gap:12px;
+                "
+            >
+
+                <!-- CANCEL BUTTON -->
+
+                <a
+                    href="{% url 'country_list' %}"
+                    style="
+                        display:inline-flex;
+                        align-items:center;
+                        justify-content:center;
+                        gap:8px;
+
+                        min-width:120px;
+                        height:44px;
+                        padding:0 20px;
+
+                        background:#ffffff;
+                        color:#475569;
+
+                        border:1px solid #cbd5e1;
+                        border-radius:10px;
+
+                        font-size:0.88rem;
+                        font-weight:600;
+                        text-decoration:none;
+
+                        box-shadow:0 2px 5px rgba(15,23,42,0.05);
+
+                        transition:all 0.2s ease;
+                    "
+                    onmouseover="
+                        this.style.background='#f8fafc';
+                        this.style.borderColor='#94a3b8';
+                        this.style.color='#1e293b';
+                    "
+                    onmouseout="
+                        this.style.background='#ffffff';
+                        this.style.borderColor='#cbd5e1';
+                        this.style.color='#475569';
+                    "
+                >
+
+                    <i
+                        class="ph ph-x"
+                        style="font-size:1.1rem;"
+                    ></i>
+
+                    Cancel
+
+                </a>
+
+
+                <!-- SAVE BUTTON -->
+
+                <button
+                    type="submit"
+                    style="
+                        display:inline-flex;
+                        align-items:center;
+                        justify-content:center;
+                        gap:8px;
+
+                        min-width:150px;
+                        height:44px;
+                        padding:0 22px;
+
+                        background:linear-gradient(
+                            135deg,
+                            #2563eb 0%,
+                            #1d4ed8 100%
+                        );
+
+                        color:#ffffff;
+
+                        border:1px solid #1d4ed8;
+                        border-radius:10px;
+
+                        font-size:0.88rem;
+                        font-weight:600;
+
+                        cursor:pointer;
+
+                        box-shadow:
+                            0 4px 10px rgba(37,99,235,0.20),
+                            inset 0 1px 0 rgba(255,255,255,0.15);
+
+                        transition:all 0.2s ease;
+                    "
+                    onmouseover="
+                        this.style.transform='translateY(-1px)';
+                        this.style.boxShadow='0 7px 16px rgba(37,99,235,0.25)';
+                    "
+                    onmouseout="
+                        this.style.transform='translateY(0)';
+                        this.style.boxShadow='0 4px 10px rgba(37,99,235,0.20)';
+                    "
+                >
+
+                    <i
+                        class="ph ph-check-circle"
+                        style="font-size:1.15rem;"
+                    ></i>
+
+                    {% if "Edit" in title %}
+                        Update Country
+                    {% else %}
+                        Save Country
+                    {% endif %}
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </form>
+
+
+    <!-- INPUT ICON ALIGNMENT -->
+
+    <style>
+
+        .premium-form-container .form-control {
+            padding-left:42px !important;
+        }
+
+    </style>
+
+</div>
+
+{% endblock %}

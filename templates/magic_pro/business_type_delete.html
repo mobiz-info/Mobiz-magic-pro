@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Delete Business Type - Magic Pro</title>
+
+</head>
+
+<body>
+
+    <h2>Delete Business Type</h2>
+
+    <p>
+        Are you sure you want to delete
+        <strong>{{ business_type.name }}</strong>?
+    </p>
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        <button type="submit">
+            Yes, Delete
+        </button>
+
+        <a href="{% url 'business_type_list' %}">
+            Cancel
+        </a>
+
+    </form>
+
+</body>
+
+</html>

@@ -1,77 +1,276 @@
 from django.db import models
-from django.contrib.auth.models import User
-from core.models import Branch, Product, ProductPackingSize
 
-class DailySale(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='daily_sales')
-    staff = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sales_entered')
-    sale_date = models.DateField()
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='sales')
-    product_packing = models.ForeignKey(ProductPackingSize, on_delete=models.CASCADE, related_name='sales')
-    packing_count = models.IntegerField(default=0)
-    base_quantity = models.DecimalField(max_digits=12, decimal_places=4, default=0.0000)
-    margin = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    profit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_sales')
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_sales')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+from core.models import User
 
-    def save(self, *args, **kwargs):
-        # Calculate base_quantity and profit before saving
-        if self.product_packing:
-            self.base_quantity = self.packing_count * self.product_packing.base_qty_unit
-        self.profit = self.packing_count * self.margin
-        super().save(*args, **kwargs)
+from masters.models import (
+    BusinessType,
+    Country,
+    State,
+    District,
+    Area,
+    EventName,
+)
+
+
+# =========================================================
+# CLIENT
+# =========================================================
+
+class Client(models.Model):
+
+    company_name = models.CharField(
+        max_length=200
+    )
+
+    owner = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="client"
+    )
+
+    email = models.EmailField(
+        blank=True,
+        null=True
+    )
+
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True
+    )
+
+    address = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    business_type = models.ForeignKey(
+        BusinessType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clients"
+    )
+
+    country = models.ForeignKey(
+        Country,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clients"
+    )
+
+    state = models.ForeignKey(
+        State,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clients"
+    )
+
+    district = models.ForeignKey(
+        District,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clients"
+    )
+
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clients"
+    )
+
+    status = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     def __str__(self):
-        return f"{self.branch.name} | {self.sale_date} | {self.product_packing.packing_name} x {self.packing_count} (Profit: ₹{self.profit})"
+        return self.company_name
+
+
+# =========================================================
+# BRANCH
+# =========================================================
+
+class Branch(models.Model):
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="branch_profile"
+    )
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name="branches"
+    )
+
+    name = models.CharField(
+        max_length=200
+    )
+
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True
+    )
+
+    email = models.EmailField(
+        blank=True,
+        null=True
+    )
+
+    address = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    status = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     class Meta:
-        unique_together = ('branch', 'sale_date', 'product_packing')
-        ordering = ['-sale_date', 'branch', 'product_packing']
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client", "name"],
+                name="unique_branch_per_client"
+            )
+        ]
 
-class ExpenseHead(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+        ordering = ["-id"]
 
     def __str__(self):
-        return self.name
+        return f"{self.name} - {self.client.company_name}"
+
+
+# =========================================================
+# CUSTOMER
+# =========================================================
+
+class Customer(models.Model):
+
+    class NotificationMethod(models.TextChoices):
+        SMS = "SMS", "SMS"
+        WHATSAPP = "WHATSAPP", "WhatsApp"
+
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="customers"
+    )
+
+    name = models.CharField(
+        max_length=200
+    )
+
+    phone = models.CharField(
+        max_length=20
+    )
+
+    email = models.EmailField(
+        blank=True,
+        null=True
+    )
+
+    address = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    pincode = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True
+    )
+
+    notification_method = models.CharField(
+        max_length=20,
+        choices=NotificationMethod.choices,
+        default=NotificationMethod.WHATSAPP
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     class Meta:
-        ordering = ['name']
-
-
-
-class Expense(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='expenses')
-    staff = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses_entered')
-    expense_date = models.DateField()
-    expense_head = models.ForeignKey(ExpenseHead, on_delete=models.PROTECT, related_name='expenses')
-    amount = models.DecimalField(max_digits=18, decimal_places=6)
-    description = models.TextField(blank=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_expenses')
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_expenses')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+        ordering = ["-id"]
 
     def __str__(self):
-        return f"{self.branch.name} | {self.expense_date} | {self.expense_head.name}: ₹{self.amount}"
+        return f"{self.name} ({self.phone})"
+
+
+# =========================================================
+# CUSTOMER EVENT
+# =========================================================
+
+class CustomerEvent(models.Model):
+
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="events"
+    )
+
+    event_name = models.ForeignKey(
+        EventName,
+        on_delete=models.PROTECT,
+        related_name="customer_events"
+    )
+
+    event_date = models.DateField()
+
+    repeat_yearly = models.BooleanField(
+        default=True
+    )
+
+    notes = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     class Meta:
-        ordering = ['-expense_date', 'branch']
-
-
-class Vehicle(models.Model):
-    vehicle_number = models.CharField(max_length=50, unique=True)
-    vehicle_type = models.CharField(max_length=100)
-    branch = models.ForeignKey(Branch, on_delete=models.PROTECT, related_name='vehicles')
-    driver_name = models.CharField(max_length=150)
-    driver_phone = models.CharField(max_length=15)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+        ordering = [
+            "event_date",
+            "-id"
+        ]
 
     def __str__(self):
-        return f"{self.vehicle_number} - {self.vehicle_type}"
+        return f"{self.customer.name} - {self.event_name.name}"

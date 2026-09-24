@@ -1,0 +1,1618 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Client Management
+{% endblock %}
+
+
+{% block page_title %}
+    Client Management
+{% endblock %}
+
+
+{% block page_subtitle %}
+    Manage companies and their owner information
+{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+/* =========================================================
+   CLIENT MANAGEMENT PAGE
+========================================================= */
+
+.client-page {
+    width: 100%;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.client-header {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 15px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    box-shadow:
+        0 4px 18px rgba(37, 99, 235, 0.06);
+}
+
+
+.client-header-left h2 {
+    margin: 0 0 4px;
+
+    color: #0f172a;
+
+    font-size: 19px;
+    font-weight: 700;
+}
+
+
+.client-header-left p {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   ADD BUTTON
+========================================================= */
+
+.client-add-btn {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    min-height: 38px;
+
+    padding: 0 15px;
+
+    background: #2563eb;
+
+    color: #ffffff;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    border: 1px solid #2563eb;
+
+    transition: all 0.2s ease;
+}
+
+
+.client-add-btn:hover {
+    background: #1d4ed8;
+
+    border-color: #1d4ed8;
+
+    color: #ffffff;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+.client-message {
+    padding: 10px 13px;
+
+    margin-bottom: 12px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+    border: 1px solid transparent;
+}
+
+
+.client-message.success {
+    background: #eff6ff;
+
+    color: #1d4ed8;
+
+    border-color: #bfdbfe;
+}
+
+
+.client-message.error {
+    background: #fef2f2;
+
+    color: #b91c1c;
+
+    border-color: #fecaca;
+}
+
+
+.client-message.warning {
+    background: #fffbeb;
+
+    color: #92400e;
+
+    border-color: #fde68a;
+}
+
+
+.client-message.info {
+    background: #f0f9ff;
+
+    color: #0369a1;
+
+    border-color: #bae6fd;
+}
+
+
+/* =========================================================
+   TABLE CARD
+========================================================= */
+
+.client-table-card {
+    background: #ffffff;
+
+    border: 1px solid #dbeafe;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 5px 20px rgba(37, 99, 235, 0.07);
+}
+
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+.client-table-top {
+    padding: 14px 18px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    background: #ffffff;
+}
+
+
+.client-table-title {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+.client-table-title-icon {
+    width: 32px;
+    height: 32px;
+
+    border-radius: 8px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 17px;
+}
+
+
+.client-table-title-text {
+    font-size: 13px;
+
+    font-weight: 700;
+
+    color: #0f172a;
+}
+
+
+.client-table-title-sub {
+    font-size: 10px;
+
+    color: #94a3b8;
+
+    margin-top: 1px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.client-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.client-table {
+    width: 100%;
+
+    min-width: 1100px;
+
+    border-collapse: collapse;
+}
+
+
+.client-table thead {
+    background: #f8fbff;
+}
+
+
+.client-table th {
+    padding: 11px 13px;
+
+    text-align: left;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    color: #475569;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.4px;
+
+    border-bottom: 1px solid #dbeafe;
+
+    white-space: nowrap;
+}
+
+
+.client-table td {
+    padding: 12px 13px;
+
+    font-size: 12px;
+
+    color: #334155;
+
+    border-bottom: 1px solid #eef2f7;
+
+    vertical-align: middle;
+}
+
+
+.client-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+
+.client-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+
+.client-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   SERIAL NUMBER
+========================================================= */
+
+.client-number {
+    color: #94a3b8;
+
+    font-size: 11px;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   COMPANY
+========================================================= */
+
+.company-info {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+.company-icon {
+    width: 34px;
+    height: 34px;
+
+    border-radius: 8px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 16px;
+
+    flex-shrink: 0;
+}
+
+
+.company-name {
+    color: #0f172a;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+.company-label {
+    color: #94a3b8;
+
+    font-size: 9px;
+
+    margin-top: 1px;
+}
+
+
+/* =========================================================
+   OWNER
+========================================================= */
+
+.owner-info {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.owner-avatar {
+    width: 30px;
+    height: 30px;
+
+    border-radius: 50%;
+
+    background: #dbeafe;
+
+    color: #1d4ed8;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    flex-shrink: 0;
+}
+
+
+.owner-name {
+    font-size: 11px;
+
+    font-weight: 600;
+
+    color: #334155;
+}
+
+
+/* =========================================================
+   CONTACT
+========================================================= */
+
+.contact-value {
+    color: #475569;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+}
+
+
+.contact-empty {
+    color: #cbd5e1;
+}
+
+
+/* =========================================================
+   PHONE
+========================================================= */
+
+.phone-value {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    color: #475569;
+
+    font-size: 11px;
+
+    font-weight: 500;
+
+    white-space: nowrap;
+}
+
+
+.phone-icon {
+    color: #2563eb;
+
+    font-size: 13px;
+}
+
+
+.phone-code-list {
+    color: #2563eb;
+
+    font-weight: 700;
+}
+
+
+.phone-number {
+    color: #475569;
+}
+
+
+/* =========================================================
+   BUSINESS TYPE
+========================================================= */
+
+.business-type-text {
+    display: inline-flex;
+
+    align-items: center;
+
+    padding: 5px 8px;
+
+    border-radius: 6px;
+
+    background: #f8fafc;
+
+    color: #475569;
+
+    border: 1px solid #e2e8f0;
+
+    font-size: 10px;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   LOCATION
+========================================================= */
+
+.location-info {
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    color: #475569;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+}
+
+
+.location-info i {
+    color: #2563eb;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status-badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 8px;
+
+    border-radius: 20px;
+
+    font-size: 9px;
+
+    font-weight: 700;
+}
+
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+}
+
+
+.status-active {
+    background: #eff6ff;
+
+    color: #1d4ed8;
+}
+
+
+.status-active .status-dot {
+    background: #2563eb;
+}
+
+
+.status-inactive {
+    background: #fef2f2;
+
+    color: #b91c1c;
+}
+
+
+.status-inactive .status-dot {
+    background: #ef4444;
+}
+
+
+/* =========================================================
+   DATE
+========================================================= */
+
+.created-date {
+    color: #64748b;
+
+    font-size: 11px;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.client-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    white-space: nowrap;
+}
+
+
+.client-action {
+    min-height: 30px;
+
+    padding: 0 9px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+    border-radius: 7px;
+
+    text-decoration: none;
+
+    font-size: 10px;
+
+    font-weight: 600;
+
+    transition: all 0.2s ease;
+}
+
+
+.client-action-owner {
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    border: 1px solid #bfdbfe;
+}
+
+
+.client-action-owner:hover {
+    background: #dbeafe;
+
+    color: #1d4ed8;
+}
+
+
+.client-action-edit {
+    background: #f8fafc;
+
+    color: #475569;
+
+    border: 1px solid #cbd5e1;
+}
+
+
+.client-action-edit:hover {
+    background: #f1f5f9;
+
+    color: #0f172a;
+}
+
+
+.client-action-delete {
+    background: #fff7f7;
+
+    color: #dc2626;
+
+    border: 1px solid #fecaca;
+}
+
+
+.client-action-delete:hover {
+    background: #fee2e2;
+
+    color: #b91c1c;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.client-empty {
+    padding: 55px 20px;
+
+    text-align: center;
+}
+
+
+.client-empty-icon {
+    width: 52px;
+    height: 52px;
+
+    margin: 0 auto 12px;
+
+    border-radius: 13px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 24px;
+}
+
+
+.client-empty h3 {
+    margin: 0 0 5px;
+
+    color: #0f172a;
+
+    font-size: 15px;
+
+    font-weight: 700;
+}
+
+
+.client-empty p {
+    margin: 0 0 16px;
+
+    color: #94a3b8;
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   PAGINATION
+========================================================= */
+
+.client-pagination {
+    padding: 13px 18px;
+
+    border-top: 1px solid #e5e7eb;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 12px;
+}
+
+
+.pagination-info {
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+
+.pagination-buttons {
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+}
+
+
+.pagination-btn {
+    min-width: 32px;
+
+    height: 32px;
+
+    padding: 0 10px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+    border-radius: 7px;
+
+    border: 1px solid #dbeafe;
+
+    background: #ffffff;
+
+    color: #2563eb;
+
+    text-decoration: none;
+
+    font-size: 10px;
+
+    font-weight: 600;
+
+    transition: all 0.2s ease;
+}
+
+
+.pagination-btn:hover {
+    background: #eff6ff;
+
+    border-color: #bfdbfe;
+}
+
+
+.pagination-current {
+    min-width: 32px;
+
+    height: 32px;
+
+    padding: 0 10px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: #2563eb;
+
+    border: 1px solid #2563eb;
+
+    color: #ffffff;
+
+    font-size: 10px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .client-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .client-add-btn {
+        width: 100%;
+    }
+
+
+    .client-pagination {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="client-page">
+
+
+    <!-- =====================================================
+         PAGE HEADER
+    ===================================================== -->
+
+    <div class="client-header">
+
+        <div class="client-header-left">
+
+            <h2>
+                Client Management
+            </h2>
+
+            <p>
+                Manage companies, owners and business details
+            </p>
+
+        </div>
+
+
+        <!-- =================================================
+             SUPER ADMIN ONLY
+             ADD CLIENT
+        ================================================= -->
+
+        {% if request.user.is_authenticated and request.user.role == "SUPER_ADMIN" %}
+
+            <a
+                href="{% url 'client_create' %}"
+                class="client-add-btn"
+            >
+
+                <i class="ph ph-plus"></i>
+
+                Add Client
+
+            </a>
+
+        {% endif %}
+
+    </div>
+
+
+
+    <!-- =====================================================
+         MESSAGES
+    ===================================================== -->
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            <div
+                class="
+                    client-message
+
+                    {% if message.tags == 'success' %}
+                        success
+                    {% elif message.tags == 'error' %}
+                        error
+                    {% elif message.tags == 'warning' %}
+                        warning
+                    {% else %}
+                        info
+                    {% endif %}
+                "
+            >
+
+                {{ message }}
+
+            </div>
+
+        {% endfor %}
+
+    {% endif %}
+
+
+
+    <!-- =====================================================
+         TABLE CARD
+    ===================================================== -->
+
+    <div class="client-table-card">
+
+
+        <!-- TABLE TOP -->
+
+        <div class="client-table-top">
+
+            <div class="client-table-title">
+
+                <div class="client-table-title-icon">
+
+                    <i class="ph ph-buildings"></i>
+
+                </div>
+
+
+                <div>
+
+                    <div class="client-table-title-text">
+
+                        Clients
+
+                    </div>
+
+                    <div class="client-table-title-sub">
+
+                        Company and owner information
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             TABLE
+        ================================================= -->
+
+        <div class="client-table-wrapper">
+
+            <table class="client-table">
+
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Company</th>
+
+                        <th>Owner</th>
+
+                        <th>Email</th>
+
+                        <th>Phone</th>
+
+                        <th>Business Type</th>
+
+                        <th>Location</th>
+
+                        <th>Status</th>
+
+                        <th>Created</th>
+
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                {% for client in page_obj %}
+
+                    <tr>
+
+
+                        <!-- NUMBER -->
+
+                        <td>
+
+                            <span class="client-number">
+
+                                {{ page_obj.start_index|add:forloop.counter0 }}
+
+                            </span>
+
+                        </td>
+
+
+
+                        <!-- COMPANY -->
+
+                        <td>
+
+                            <div class="company-info">
+
+                                <div class="company-icon">
+
+                                    <i class="ph ph-buildings"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="company-name">
+
+                                        {{ client.company_name }}
+
+                                    </div>
+
+                                    <div class="company-label">
+
+                                        Company
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+
+                        <!-- OWNER -->
+
+                        <td>
+
+                            {% if client.owner %}
+
+                                <div class="owner-info">
+
+                                    <div class="owner-avatar">
+
+                                        {% if client.owner.first_name %}
+
+                                            {{ client.owner.first_name|first|upper }}
+
+                                        {% else %}
+
+                                            {{ client.owner.username|first|upper }}
+
+                                        {% endif %}
+
+                                    </div>
+
+
+                                    <div class="owner-name">
+
+                                        {% if client.owner.get_full_name %}
+
+                                            {{ client.owner.get_full_name }}
+
+                                        {% else %}
+
+                                            {{ client.owner.username }}
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </div>
+
+                            {% else %}
+
+                                <span class="contact-empty">
+
+                                    No owner
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- EMAIL -->
+
+                        <td>
+
+                            {% if client.email %}
+
+                                <span class="contact-value">
+
+                                    {{ client.email }}
+
+                                </span>
+
+                            {% elif client.owner and client.owner.email %}
+
+                                <span class="contact-value">
+
+                                    {{ client.owner.email }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="contact-empty">
+
+                                    —
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- PHONE -->
+
+                        <td>
+
+                            {% if client.phone %}
+
+                                <span class="phone-value">
+
+                                    <i class="ph ph-phone phone-icon"></i>
+
+
+                                    {% if client.country and client.country.dial_code %}
+
+                                        <span class="phone-code-list">
+
+                                            {{ client.country.dial_code }}
+
+                                        </span>
+
+                                    {% endif %}
+
+
+                                    <span class="phone-number">
+
+                                        {{ client.phone }}
+
+                                    </span>
+
+                                </span>
+
+                            {% elif client.owner and client.owner.phone %}
+
+                                <span class="phone-value">
+
+                                    <i class="ph ph-phone phone-icon"></i>
+
+
+                                    {% if client.country and client.country.dial_code %}
+
+                                        <span class="phone-code-list">
+
+                                            {{ client.country.dial_code }}
+
+                                        </span>
+
+                                    {% endif %}
+
+
+                                    <span class="phone-number">
+
+                                        {{ client.owner.phone }}
+
+                                    </span>
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="contact-empty">
+
+                                    —
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- BUSINESS TYPE -->
+
+                        <td>
+
+                            {% if client.business_type %}
+
+                                <span class="business-type-text">
+
+                                    {{ client.business_type.name }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="contact-empty">
+
+                                    —
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- LOCATION -->
+
+                        <td>
+
+                            {% if client.area %}
+
+                                <div class="location-info">
+
+                                    <i class="ph ph-map-pin"></i>
+
+                                    {{ client.area.name }}
+
+                                </div>
+
+                            {% elif client.district %}
+
+                                <div class="location-info">
+
+                                    <i class="ph ph-map-pin"></i>
+
+                                    {{ client.district.name }}
+
+                                </div>
+
+                            {% elif client.state %}
+
+                                <div class="location-info">
+
+                                    <i class="ph ph-map-pin"></i>
+
+                                    {{ client.state.name }}
+
+                                </div>
+
+                            {% elif client.country %}
+
+                                <div class="location-info">
+
+                                    <i class="ph ph-globe"></i>
+
+                                    {{ client.country.name }}
+
+                                </div>
+
+                            {% else %}
+
+                                <span class="contact-empty">
+
+                                    —
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            {% if client.status %}
+
+                                <span class="status-badge status-active">
+
+                                    <span class="status-dot"></span>
+
+                                    Active
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="status-badge status-inactive">
+
+                                    <span class="status-dot"></span>
+
+                                    Inactive
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- CREATED DATE -->
+
+                        <td>
+
+                            <span class="created-date">
+
+                                {{ client.created_at|date:"d M Y" }}
+
+                            </span>
+
+                        </td>
+
+
+
+                        <!-- ACTIONS -->
+
+                        <td>
+
+                            <div class="client-actions">
+
+
+                                <!-- OWNER DETAILS -->
+
+                                {% if client.owner %}
+
+                                    <a
+                                        href="{% url 'owner_details' client.id %}"
+                                        class="client-action client-action-owner"
+                                        title="View Owner Details"
+                                    >
+
+                                        <i class="ph ph-user"></i>
+
+                                        Owner
+
+                                    </a>
+
+                                {% endif %}
+
+
+
+                                <!-- EDIT
+                                     SUPER ADMIN + OWNER -->
+
+                                {% if request.user.role == "SUPER_ADMIN" or request.user.role == "OWNER" %}
+
+                                    <a
+                                        href="{% url 'client_edit' client.id %}"
+                                        class="client-action client-action-edit"
+                                        title="Edit Client"
+                                    >
+
+                                        <i class="ph ph-pencil-simple"></i>
+
+                                        Edit
+
+                                    </a>
+
+                                {% endif %}
+
+
+
+                                <!-- DELETE
+                                     SUPER ADMIN ONLY -->
+
+                                {% if request.user.role == "SUPER_ADMIN" %}
+
+                                    <a
+                                        href="{% url 'client_delete' client.id %}"
+                                        class="client-action client-action-delete"
+                                        title="Delete Client"
+                                        onclick="return confirm('Are you sure you want to delete this client?');"
+                                    >
+
+                                        <i class="ph ph-trash"></i>
+
+                                        Delete
+
+                                    </a>
+
+                                {% endif %}
+
+
+                            </div>
+
+                        </td>
+
+
+                    </tr>
+
+
+                {% empty %}
+
+                    <tr>
+
+                        <td colspan="10">
+
+                            <div class="client-empty">
+
+                                <div class="client-empty-icon">
+
+                                    <i class="ph ph-buildings"></i>
+
+                                </div>
+
+
+                                <h3>
+
+                                    No Clients Found
+
+                                </h3>
+
+
+                                <p>
+
+                                    No companies have been created yet.
+
+                                </p>
+
+
+                                {% if request.user.is_authenticated and request.user.role == "SUPER_ADMIN" %}
+
+                                    <a
+                                        href="{% url 'client_create' %}"
+                                        class="client-add-btn"
+                                    >
+
+                                        <i class="ph ph-plus"></i>
+
+                                        Add Client
+
+                                    </a>
+
+                                {% endif %}
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+
+        <!-- =================================================
+             PAGINATION
+        ================================================= -->
+
+        {% if page_obj.has_other_pages %}
+
+            <div class="client-pagination">
+
+
+                <div class="pagination-info">
+
+                    Page
+
+                    <strong>
+
+                        {{ page_obj.number }}
+
+                    </strong>
+
+                    of
+
+                    <strong>
+
+                        {{ page_obj.paginator.num_pages }}
+
+                    </strong>
+
+                </div>
+
+
+                <div class="pagination-buttons">
+
+
+                    {% if page_obj.has_previous %}
+
+                        <a
+                            href="?page={{ page_obj.previous_page_number }}"
+                            class="pagination-btn"
+                        >
+
+                            <i class="ph ph-caret-left"></i>
+
+                            Previous
+
+                        </a>
+
+                    {% endif %}
+
+
+                    <span class="pagination-current">
+
+                        {{ page_obj.number }}
+
+                    </span>
+
+
+                    {% if page_obj.has_next %}
+
+                        <a
+                            href="?page={{ page_obj.next_page_number }}"
+                            class="pagination-btn"
+                        >
+
+                            Next
+
+                            <i class="ph ph-caret-right"></i>
+
+                        </a>
+
+                    {% endif %}
+
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+    </div>
+
+</div>
+
+{% endblock %}

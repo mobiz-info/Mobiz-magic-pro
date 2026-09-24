@@ -1,139 +1,721 @@
-from rest_framework import viewsets, permissions, status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from operations.models import Expense
-from rest_framework.decorators import action
-from django.http import HttpResponse
-from openpyxl import Workbook
-from core.models import Branch, StaffProfile, Product, ProductPackingSize,ProductMargin
-from operations.models import Vehicle
 
-from api.serializers import (
-    UserSerializer, StaffProfileSerializer, BranchSerializer,ProductSerializer,
-    ProductPackingSizeSerializer,ProductMarginSerializer,VehicleSerializer,ExpenseSerializer,
+from rest_framework import status, viewsets
+from rest_framework.permissions import (
+    IsAuthenticated,
+    AllowAny,
+    BasePermission,
+)
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from core.models import User
+
+from masters.models import (
+    BusinessType,
+    Country,
+    State,
+    District,
+    Area,
+    EventName,
 )
 
+from operations.models import (
+    Client,
+    Branch,
+    Customer,
+    CustomerEvent,
+)
+
+from .serializers import (
+    UserSerializer,
+    BusinessTypeSerializer,
+    ClientSerializer,
+    CountrySerializer,
+    StateSerializer,
+    DistrictSerializer,
+    AreaSerializer,
+    BranchSerializer,
+    CustomerSerializer,
+    EventNameSerializer,
+    CustomerEventSerializer,
+)
+
+
+# =========================================================
+# PERMISSION HELPERS
+# =========================================================
+
+class IsAdminRole(BasePermission):
+    """
+    Only OWNER and SUPER_ADMIN can access admin APIs.
+    """
+
+    def has_permission(self, request, view):
+
+        return (
+            request.user.is_authenticated
+            and request.user.role in [
+                User.Role.OWNER,
+                User.Role.SUPER_ADMIN,
+            ]
+        )
+
+
+class IsAdminOrBranch(BasePermission):
+    """
+    OWNER, SUPER_ADMIN and BRANCH can access the API.
+    """
+
+    def has_permission(self, request, view):
+
+        return (
+            request.user.is_authenticated
+            and request.user.role in [
+                User.Role.OWNER,
+                User.Role.SUPER_ADMIN,
+                User.Role.BRANCH,
+            ]
+        )
+
+
+# =========================================================
+# LOGIN API
+# =========================================================
+
 class LoginAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
 
-        if user:
-            if hasattr(user, 'profile') and user.profile.status == 'inactive':
-                return Response({'detail': 'User account is inactive'}, status=status.HTTP_403_FORBIDDEN)
-            refresh = RefreshToken.for_user(user)
-            role = user.profile.role if hasattr(user, 'profile') else ('ADMIN' if user.is_superuser else 'STAFF')
-            branch_id = user.profile.branch.id if hasattr(user, 'profile') and user.profile.branch else None
+        username = request.data.get(
+            "username"
+        )
 
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'role': role,
-                    'branch_id': branch_id
+        password = request.data.get(
+            "password"
+        )
+
+        if not username or not password:
+
+            return Response(
+                {
+                    "detail": "Username and password are required."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(
+            request,
+            username=username,
+            password=password
+        )
+
+        if user is None:
+
+            return Response(
+                {
+                    "detail": "Invalid username or password."
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # -------------------------------------------------
+        # BRANCH USER VALIDATION
+        # -------------------------------------------------
+
+        if user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                user,
+                "branch_profile",
+                None
+            )
+
+            if branch is None:
+
+                return Response(
+                    {
+                        "detail": (
+                            "This branch account is not "
+                            "assigned to a branch."
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # -------------------------------------------------
+        # ALLOWED ROLES
+        # -------------------------------------------------
+
+        if user.role not in [
+            User.Role.OWNER,
+            User.Role.SUPER_ADMIN,
+            User.Role.BRANCH,
+        ]:
+
+            return Response(
+                {
+                    "detail": (
+                        "You are not authorized "
+                        "to use this application."
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # -------------------------------------------------
+        # JWT
+        # -------------------------------------------------
+
+        refresh = RefreshToken.for_user(
+            user
+        )
+
+        response_data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": UserSerializer(user).data,
+        }
+
+        # -------------------------------------------------
+        # BRANCH DETAILS
+        # -------------------------------------------------
+
+        if user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                user,
+                "branch_profile",
+                None
+            )
+
+            if branch:
+
+                response_data["branch"] = {
+                    "id": branch.id,
+                    "name": branch.name,
+                    "client": branch.client_id,
+                    "client_name": branch.client.company_name,
                 }
-            })
-        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
+        return Response(
+            response_data,
+            status=status.HTTP_200_OK
+        )
+
+
+# =========================================================
+# ME API
+# =========================================================
 
 class MeAPIView(APIView):
-    def get(self, request):
-        profile = getattr(request.user, 'profile', None)
-        serializer = StaffProfileSerializer(profile) if profile else None
-        return Response({
-            'user': UserSerializer(request.user).data,
-            'profile': serializer.data if serializer else None
-        })
 
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def get(self, request):
+
+        response_data = {
+            "user": UserSerializer(
+                request.user
+            ).data
+        }
+
+        # -------------------------------------------------
+        # BRANCH DETAILS
+        # -------------------------------------------------
+
+        if request.user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                request.user,
+                "branch_profile",
+                None
+            )
+
+            if branch:
+
+                response_data["branch"] = {
+                    "id": branch.id,
+                    "name": branch.name,
+                    "client": branch.client_id,
+                    "client_name": branch.client.company_name,
+                }
+
+        return Response(
+            response_data,
+            status=status.HTTP_200_OK
+        )
+
+
+# =========================================================
+# USER API
+# =========================================================
+
+class UserViewSet(viewsets.ModelViewSet):
+
+    queryset = User.objects.all().order_by(
+        "id"
+    )
+
+    serializer_class = UserSerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# BUSINESS TYPE API
+# =========================================================
+
+class BusinessTypeViewSet(viewsets.ModelViewSet):
+
+    queryset = BusinessType.objects.all().order_by(
+        "id"
+    )
+
+    serializer_class = BusinessTypeSerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# COUNTRY API
+# =========================================================
+
+class CountryViewSet(viewsets.ModelViewSet):
+
+    queryset = Country.objects.all().order_by(
+        "id"
+    )
+
+    serializer_class = CountrySerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# STATE API
+# =========================================================
+
+class StateViewSet(viewsets.ModelViewSet):
+
+    queryset = State.objects.select_related(
+        "country"
+    ).all().order_by(
+        "id"
+    )
+
+    serializer_class = StateSerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# DISTRICT API
+# =========================================================
+
+class DistrictViewSet(viewsets.ModelViewSet):
+
+    queryset = District.objects.select_related(
+        "state",
+        "state__country"
+    ).all().order_by(
+        "id"
+    )
+
+    serializer_class = DistrictSerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# AREA API
+# =========================================================
+
+class AreaViewSet(viewsets.ModelViewSet):
+
+    queryset = Area.objects.select_related(
+        "district",
+        "district__state",
+        "district__state__country"
+    ).all().order_by(
+        "id"
+    )
+
+    serializer_class = AreaSerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# CLIENT API
+# =========================================================
+
+class ClientViewSet(viewsets.ModelViewSet):
+
+    queryset = Client.objects.select_related(
+        "owner",
+        "business_type",
+        "country",
+        "state",
+        "district",
+        "area",
+    ).all().order_by(
+        "id"
+    )
+
+    serializer_class = ClientSerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# BRANCH API
+# =========================================================
 
 class BranchViewSet(viewsets.ModelViewSet):
-    queryset = Branch.objects.all()
+
+    queryset = Branch.objects.select_related(
+        "user",
+        "client",
+    ).all().order_by(
+        "id"
+    )
+
     serializer_class = BranchSerializer
 
-
-class StaffProfileViewSet(viewsets.ModelViewSet):
-    queryset = StaffProfile.objects.select_related('user', 'branch').all()
-    serializer_class = StaffProfileSerializer
-
-class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
+    permission_classes = [
+        IsAdminRole
+    ]
 
 
-class ProductPackingSizeViewSet(viewsets.ModelViewSet):
-    queryset = ProductPackingSize.objects.select_related('product').all()
-    serializer_class = ProductPackingSizeSerializer
+# =========================================================
+# CUSTOMER API
+# =========================================================
 
-class ProductMarginViewSet(viewsets.ModelViewSet):
-    queryset = ProductMargin.objects.select_related('product', 'packing_size').all()
-    serializer_class = ProductMarginSerializer
-class VehicleViewSet(viewsets.ModelViewSet):
-    queryset = Vehicle.objects.select_related('branch').all()
-    serializer_class = VehicleSerializer
+class CustomerViewSet(viewsets.ModelViewSet):
+
+    serializer_class = CustomerSerializer
+
+    permission_classes = [
+        IsAdminOrBranch
+    ]
+
+    # -----------------------------------------------------
+    # QUERYSET
+    # -----------------------------------------------------
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        branch_id = self.request.query_params.get('branch')
 
-        if branch_id:
-            queryset = queryset.filter(branch_id=branch_id)
+        queryset = Customer.objects.select_related(
+            "branch",
+            "branch__client",
+        ).all().order_by(
+            "-id"
+        )
+
+        # -------------------------------------------------
+        # BRANCH USER
+        # -------------------------------------------------
+
+        if self.request.user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                self.request.user,
+                "branch_profile",
+                None
+            )
+
+            if not branch:
+
+                return Customer.objects.none()
+
+            queryset = queryset.filter(
+                branch=branch
+            )
 
         return queryset
 
+    # -----------------------------------------------------
+    # CREATE
+    # -----------------------------------------------------
 
-class ExpenseViewSet(viewsets.ModelViewSet):
-    queryset = Expense.objects.select_related(
-        'branch',
-        'staff',
-        'expense_head'
-    ).all()
-    serializer_class = ExpenseSerializer
+    def create(self, request, *args, **kwargs):
 
-    @action(detail=False, methods=['get'], url_path='export')
-    def export_excel(self, request):
-        expenses = self.get_queryset()
+        data = request.data.copy()
 
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = "Expenses"
+        # -------------------------------------------------
+        # BRANCH USER
+        # -------------------------------------------------
 
-        headers = [
-            "ID",
-            "Branch",
-            "Staff",
-            "Expense Date",
-            "Expense Head",
-            "Amount",
-            "Description",
-        ]
+        if request.user.role == User.Role.BRANCH:
 
-        worksheet.append(headers)
+            branch = getattr(
+                request.user,
+                "branch_profile",
+                None
+            )
 
-        for expense in expenses:
-            worksheet.append([
-                expense.id,
-                expense.branch.name,
-                expense.staff.username if expense.staff else "",
-                expense.expense_date,
-                expense.expense_head.name,
-                float(expense.amount),
-                expense.description,
-            ])
+            if not branch:
 
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                return Response(
+                    {
+                        "detail": (
+                            "Branch account is not "
+                            "linked to a branch."
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Branch is automatically assigned
+            data["branch"] = branch.id
+
+        serializer = self.get_serializer(
+            data=data
         )
 
-        response["Content-Disposition"] = 'attachment; filename="expenses.xlsx"'
+        serializer.is_valid(
+            raise_exception=True
+        )
 
-        workbook.save(response)
+        self.perform_create(
+            serializer
+        )
 
-        return response
+        headers = self.get_success_headers(
+            serializer.data
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+
+    # -----------------------------------------------------
+    # UPDATE
+    # -----------------------------------------------------
+
+    def perform_update(self, serializer):
+
+        if self.request.user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                self.request.user,
+                "branch_profile",
+                None
+            )
+
+            if not branch:
+
+                raise PermissionDenied(
+                    "Branch account is not linked to a branch."
+                )
+
+            serializer.save(
+                branch=branch
+            )
+
+        else:
+
+            serializer.save()
+
+    # -----------------------------------------------------
+    # CREATE SAVE
+    # -----------------------------------------------------
+
+    def perform_create(self, serializer):
+
+        if self.request.user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                self.request.user,
+                "branch_profile",
+                None
+            )
+
+            if not branch:
+
+                raise PermissionDenied(
+                    "Branch account is not linked to a branch."
+                )
+
+            serializer.save(
+                branch=branch
+            )
+
+        else:
+
+            serializer.save()
+
+
+# =========================================================
+# EVENT NAME API
+# =========================================================
+
+class EventNameViewSet(viewsets.ModelViewSet):
+
+    queryset = EventName.objects.all().order_by(
+        "name"
+    )
+
+    serializer_class = EventNameSerializer
+
+    permission_classes = [
+        IsAdminRole
+    ]
+
+
+# =========================================================
+# CUSTOMER EVENT API
+# =========================================================
+
+class CustomerEventViewSet(viewsets.ModelViewSet):
+
+    serializer_class = CustomerEventSerializer
+
+    permission_classes = [
+        IsAdminOrBranch
+    ]
+
+    # -----------------------------------------------------
+    # QUERYSET
+    # -----------------------------------------------------
+
+    def get_queryset(self):
+
+        queryset = CustomerEvent.objects.select_related(
+            "customer",
+            "customer__branch",
+            "customer__branch__client",
+            "event_name",
+        ).all().order_by(
+            "event_date",
+            "-id"
+        )
+
+        # -------------------------------------------------
+        # BRANCH USER
+        # -------------------------------------------------
+
+        if self.request.user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                self.request.user,
+                "branch_profile",
+                None
+            )
+
+            if not branch:
+
+                return CustomerEvent.objects.none()
+
+            queryset = queryset.filter(
+                customer__branch=branch
+            )
+
+        return queryset
+
+    # -----------------------------------------------------
+    # CREATE
+    # -----------------------------------------------------
+
+    def perform_create(self, serializer):
+
+        customer = serializer.validated_data.get(
+            "customer"
+        )
+
+        if not customer:
+
+            raise PermissionDenied(
+                "Customer is required."
+            )
+
+        # -------------------------------------------------
+        # BRANCH USER
+        # -------------------------------------------------
+
+        if self.request.user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                self.request.user,
+                "branch_profile",
+                None
+            )
+
+            if not branch:
+
+                raise PermissionDenied(
+                    "Branch account is not linked to a branch."
+                )
+
+            # Customer must belong to logged-in branch
+            if customer.branch_id != branch.id:
+
+                raise PermissionDenied(
+                    "You can only add events for customers "
+                    "of your branch."
+                )
+
+        serializer.save()
+
+    # -----------------------------------------------------
+    # UPDATE
+    # -----------------------------------------------------
+
+    def perform_update(self, serializer):
+
+        customer = serializer.validated_data.get(
+            "customer",
+            serializer.instance.customer
+        )
+
+        # -------------------------------------------------
+        # BRANCH USER
+        # -------------------------------------------------
+
+        if self.request.user.role == User.Role.BRANCH:
+
+            branch = getattr(
+                self.request.user,
+                "branch_profile",
+                None
+            )
+
+            if not branch:
+
+                raise PermissionDenied(
+                    "Branch account is not linked to a branch."
+                )
+
+            # Customer must belong to logged-in branch
+            if customer.branch_id != branch.id:
+
+                raise PermissionDenied(
+                    "You can only update events for customers "
+                    "of your branch."
+                )
+
+        serializer.save()

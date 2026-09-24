@@ -1,0 +1,677 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block page_title %}
+    {{ title }}
+{% endblock %}
+
+{% block page_subtitle %}
+    Manage customer event names
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+    /* ================================
+       MAIN CARD
+    ================================= */
+
+    .event-form-page {
+        max-width: 650px;
+        margin: 0 auto;
+    }
+
+    .event-form-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow:
+            0 8px 28px rgba(15, 23, 42, 0.06),
+            0 2px 6px rgba(15, 23, 42, 0.03);
+    }
+
+
+    /* ================================
+       HEADER
+    ================================= */
+
+    .event-form-header {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 14px 18px;
+        background:
+            linear-gradient(
+                135deg,
+                #eff6ff 0%,
+                #ffffff 75%
+            );
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .event-form-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background:
+            linear-gradient(
+                135deg,
+                #dbeafe,
+                #eff6ff
+            );
+        color: #2563eb;
+        font-size: 19px;
+        flex-shrink: 0;
+        box-shadow:
+            inset 0 0 0 1px #bfdbfe;
+    }
+
+    .event-form-header h2 {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.2;
+        font-weight: 750;
+        color: #0f172a;
+    }
+
+    .event-form-header p {
+        margin: 3px 0 0;
+        color: #64748b;
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
+
+    /* ================================
+       BODY
+    ================================= */
+
+    .event-form-body {
+        padding: 17px 18px 18px;
+    }
+
+
+    /* ================================
+       FORM GROUP
+    ================================= */
+
+    .event-form-group {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+    }
+
+    .event-form-label {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-bottom: 4px;
+        color: #334155;
+        font-size: 11px;
+        line-height: 1.2;
+        font-weight: 700;
+    }
+
+    .required {
+        color: #dc2626;
+        font-size: 12px;
+    }
+
+
+    /* ================================
+       EVENT NAME INPUT
+    ================================= */
+
+    .event-form-group input[type="text"] {
+        width: 100%;
+        min-height: 38px;
+        box-sizing: border-box;
+
+        padding: 8px 10px;
+
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+
+        outline: none;
+
+        background: #ffffff;
+        color: #0f172a;
+
+        font-size: 12px;
+
+        transition:
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            background 0.18s ease;
+    }
+
+    .event-form-group input[type="text"]:hover {
+        border-color: #94a3b8;
+    }
+
+    .event-form-group input[type="text"]:focus {
+        border-color: #2563eb;
+        background: #ffffff;
+
+        box-shadow:
+            0 0 0 3px rgba(37, 99, 235, 0.08),
+            0 2px 5px rgba(37, 99, 235, 0.04);
+    }
+
+
+    /* ================================
+       STATUS CARD
+    ================================= */
+
+    .status-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        min-height: 48px;
+        box-sizing: border-box;
+
+        padding: 7px 10px;
+
+        background:
+            linear-gradient(
+                135deg,
+                #f8fafc,
+                #ffffff
+            );
+
+        border: 1px solid #e2e8f0;
+        border-radius: 9px;
+
+        transition: 0.18s ease;
+    }
+
+    .status-card:hover {
+        border-color: #bfdbfe;
+        background: #f8fbff;
+    }
+
+
+    /* STATUS LEFT */
+
+    .status-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .status-icon {
+        width: 28px;
+        height: 28px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 8px;
+
+        background: #ecfdf5;
+        color: #16a34a;
+
+        font-size: 14px;
+
+        flex-shrink: 0;
+    }
+
+    .status-title {
+        color: #334155;
+        font-size: 11px;
+        line-height: 1.2;
+        font-weight: 750;
+    }
+
+    .status-subtitle {
+        margin-top: 2px;
+        color: #94a3b8;
+        font-size: 9px;
+        line-height: 1.2;
+    }
+
+
+    /* ================================
+       PREMIUM TOGGLE
+    ================================= */
+
+    .status-toggle {
+        position: relative;
+
+        display: inline-flex;
+        align-items: center;
+
+        cursor: pointer;
+
+        flex-shrink: 0;
+    }
+
+    .status-toggle input {
+        position: absolute;
+
+        opacity: 0;
+
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        width: 38px;
+        height: 21px;
+
+        display: block;
+
+        border-radius: 20px;
+
+        background: #cbd5e1;
+
+        position: relative;
+
+        transition:
+            background 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+
+    .toggle-slider::after {
+        content: "";
+
+        position: absolute;
+
+        width: 17px;
+        height: 17px;
+
+        left: 2px;
+        top: 2px;
+
+        background: #ffffff;
+
+        border-radius: 50%;
+
+        box-shadow:
+            0 1px 4px rgba(15, 23, 42, 0.20);
+
+        transition:
+            transform 0.2s ease;
+    }
+
+    .status-toggle input:checked + .toggle-slider {
+        background: #2563eb;
+
+        box-shadow:
+            0 2px 7px rgba(37, 99, 235, 0.25);
+    }
+
+    .status-toggle input:checked + .toggle-slider::after {
+        transform: translateX(17px);
+    }
+
+
+    /* ================================
+       ERROR
+    ================================= */
+
+    .form-error {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        margin-top: 4px;
+
+        color: #dc2626;
+        font-size: 10px;
+        line-height: 1.3;
+    }
+
+
+    /* ================================
+       ACTION AREA
+    ================================= */
+
+    .event-form-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+
+        gap: 7px;
+
+        margin-top: 14px;
+        padding-top: 12px;
+
+        border-top: 1px solid #e2e8f0;
+    }
+
+
+    /* ================================
+       BUTTONS
+    ================================= */
+
+    .event-btn {
+        min-height: 35px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        gap: 5px;
+
+        padding: 0 13px;
+
+        border-radius: 8px;
+        border: none;
+
+        text-decoration: none;
+
+        font-size: 11px;
+        font-weight: 700;
+
+        cursor: pointer;
+
+        transition:
+            transform 0.18s ease,
+            background 0.18s ease,
+            box-shadow 0.18s ease;
+    }
+
+
+    /* CANCEL */
+
+    .event-btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+
+        border: 1px solid #e2e8f0;
+    }
+
+    .event-btn-secondary:hover {
+        background: #e2e8f0;
+        color: #334155;
+        transform: translateY(-1px);
+    }
+
+
+    /* SAVE */
+
+    .event-btn-primary {
+        background:
+            linear-gradient(
+                135deg,
+                #2563eb,
+                #1d4ed8
+            );
+
+        color: #ffffff;
+
+        box-shadow:
+            0 4px 10px rgba(37, 99, 235, 0.16);
+    }
+
+    .event-btn-primary:hover {
+        background:
+            linear-gradient(
+                135deg,
+                #1d4ed8,
+                #1e40af
+            );
+
+        color: #ffffff;
+
+        transform: translateY(-1px);
+
+        box-shadow:
+            0 6px 13px rgba(37, 99, 235, 0.22);
+    }
+
+
+    /* ================================
+       MOBILE
+    ================================= */
+
+    @media (max-width: 700px) {
+
+        .event-form-page {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .event-form-card {
+            border-radius: 13px;
+        }
+
+        .event-form-header {
+            padding: 13px 14px;
+        }
+
+        .event-form-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+        }
+
+        .event-form-header h2 {
+            font-size: 16px;
+        }
+
+        .event-form-header p {
+            font-size: 10px;
+        }
+
+        .event-form-body {
+            padding: 14px;
+        }
+
+        .event-form-group {
+            margin-bottom: 9px;
+        }
+
+        .status-card {
+            min-height: 46px;
+            padding: 7px 9px;
+        }
+
+        .status-subtitle {
+            font-size: 8px;
+        }
+
+        .event-form-actions {
+            flex-direction: column-reverse;
+            gap: 6px;
+        }
+
+        .event-btn {
+            width: 100%;
+            min-height: 36px;
+        }
+
+    }
+
+</style>
+
+
+<div class="event-form-page">
+
+    <div class="event-form-card">
+
+
+        <!-- HEADER -->
+
+        <div class="event-form-header">
+
+            <div class="event-form-icon">
+
+                <i class="ph ph-calendar-plus"></i>
+
+            </div>
+
+
+            <div>
+
+                <h2>
+                    {{ title }}
+                </h2>
+
+                <p>
+                    Create and manage customer event names
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div class="event-form-body">
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+
+                <!-- NON FIELD ERRORS -->
+
+                {% if form.non_field_errors %}
+
+                    {% for error in form.non_field_errors %}
+
+                        <div class="form-error">
+
+                            <i class="ph ph-warning-circle"></i>
+
+                            {{ error }}
+
+                        </div>
+
+                    {% endfor %}
+
+                {% endif %}
+
+
+                <!-- EVENT NAME -->
+
+                <div class="event-form-group">
+
+                    <label
+                        for="{{ form.name.id_for_label }}"
+                        class="event-form-label"
+                    >
+
+                        Event Name
+
+                        <span class="required">
+                            *
+                        </span>
+
+                    </label>
+
+
+                    {{ form.name }}
+
+
+                    {% if form.name.errors %}
+
+                        <div class="form-error">
+
+                            {% for error in form.name.errors %}
+
+                                <div>
+
+                                    <i class="ph ph-warning-circle"></i>
+
+                                    {{ error }}
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                
+
+
+                    {% if form.status.errors %}
+
+                        <div class="form-error">
+
+                            {% for error in form.status.errors %}
+
+                                <div>
+
+                                    <i class="ph ph-warning-circle"></i>
+
+                                    {{ error }}
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- ACTIONS -->
+
+                <div class="event-form-actions">
+
+                    <a
+                        href="{% url 'event_name_list' %}"
+                        class="event-btn event-btn-secondary"
+                    >
+
+                        <i class="ph ph-x"></i>
+
+                        Cancel
+
+                    </a>
+
+
+                    <button
+                        type="submit"
+                        class="event-btn event-btn-primary"
+                    >
+
+                        <i class="ph ph-check-circle"></i>
+
+                        {% if edit_mode %}
+
+                            Update Event Name
+
+                        {% else %}
+
+                            Save Event Name
+
+                        {% endif %}
+
+                    </button>
+
+                </div>
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

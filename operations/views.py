@@ -1,1143 +1,1754 @@
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.contrib import messages
-from django.utils import timezone
-from datetime import datetime
-from django.db.models import Sum
-from decimal import Decimal
-from django.http import HttpResponse
-from openpyxl import Workbook
-from openpyxl.styles import Alignment
-from openpyxl.utils import get_column_letter
-from core.models import Branch, StaffProfile, Product, ProductPackingSize, ProductMargin 
-from operations.models import DailySale, Expense, ExpenseHead,Vehicle
+
+from .models import (
+    Client,
+    Branch,
+    Customer,
+    CustomerEvent,
+)
+
+from .forms import (
+    ClientForm,
+    ClientOwnerForm,
+    BranchForm,
+    CustomerForm,
+    BranchCustomerForm,
+    CustomerEventForm,
+)
+
+from core.views import (
+    is_admin_user,
+    is_owner_user,
+    is_branch_user,
+)
 
 
-# --- DAILY SALES MATRIX ENTRY ---
-@login_required
-def sales_entry_view(request):
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = user_profile.is_admin if user_profile else request.user.is_superuser
-
-    # Determine branch
-    branch_id = request.GET.get('branch_id')
-    if not is_admin and user_profile and user_profile.branch:
-        branch = user_profile.branch
-    elif branch_id:
-        branch = get_object_or_404(Branch, id=branch_id)
-    else:
-        branch = Branch.objects.filter(status='active').first()
-
-    # Determine date
-    date_str = request.GET.get('sale_date')
-    if date_str:
-        try:
-            sale_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except ValueError:
-            sale_date = timezone.now().date()
-    else:
-        sale_date = timezone.now().date()
-
-    branches = Branch.objects.filter(status='active')
-    packings = ProductPackingSize.objects.select_related('product', 'packing_unit').all()
-
-    if request.method == 'POST':
-        # Process matrix submission
-        form_sale_date_str = request.POST.get('sale_date')
-        if form_sale_date_str:
-            sale_date = datetime.strptime(form_sale_date_str, '%Y-%m-%d').date()
-
-        selected_branch_id = request.POST.get('branch_id')
-        if is_admin and selected_branch_id:
-            branch = get_object_or_404(Branch, id=selected_branch_id)
-
-        saved_count = 0
-        for p in packings:
-            count_key = f"quantity_{p.id}"
-            margin_key = f"margin_{p.id}"
-            
-            count_val = request.POST.get(count_key)
-            margin_val = request.POST.get(margin_key)
-
-            if count_val is not None and count_val.strip() != "":
-                try:
-                    count_int = int(count_val)
-                    if count_int < 0:
-                        count_int = 0
-                except ValueError:
-                    count_int = 0
-
-                try:
-                    if margin_val and margin_val.strip() != "":
-                        margin_dec = Decimal(margin_val)
-                    else:
-                        margin_obj = ProductMargin.objects.filter(
-                            product=p.product,
-                            packing_size=p,
-                            effective_date__lte=sale_date
-                        ).order_by('-effective_date').first()
-                        margin_dec = margin_obj.margin_amount if margin_obj else Decimal('0.00')
-                except Exception:
-                    margin_obj = ProductMargin.objects.filter(
-                        product=p.product,
-                        packing_size=p,
-                        effective_date__lte=sale_date
-                    ).order_by('-effective_date').first()
-                    margin_dec = margin_obj.margin_amount if margin_obj else Decimal('0.00')
-
-                if count_int >= 0:
-                    daily_sale, created = DailySale.objects.get_or_create(
-                        branch=branch,
-                        sale_date=sale_date,
-                        product_packing=p,
-                        defaults={
-                            'staff': request.user,
-                            'product': p.product,
-                            'packing_count': count_int,
-                            'margin': margin_dec,
-                            'created_by': request.user,
-                            'updated_by': request.user,
-                        }
-                    )
-                    if not created:
-                        daily_sale.packing_count = count_int
-                        daily_sale.margin = margin_dec
-                        daily_sale.updated_by = request.user
-                        daily_sale.save()
-                    saved_count += 1
-
-        messages.success(request, f"Daily sales for {branch.name} on {sale_date.strftime('%d-%b-%Y')} saved successfully.")
-        return redirect(f"/sales/entry/?sale_date={sale_date.strftime('%Y-%m-%d')}&branch_id={branch.id}")
-
-    # Build packing matrix data
-    matrix = []
-    for p in packings:
-        existing_sale = DailySale.objects.filter(branch=branch, sale_date=sale_date, product_packing=p).first()
-        if existing_sale:
-            effective_margin = existing_sale.margin
-        else:
-            margin_obj = ProductMargin.objects.filter(
-                product=p.product,
-                packing_size=p,
-                effective_date__lte=sale_date
-            ).order_by('-effective_date').first()
-            effective_margin = margin_obj.margin_amount if margin_obj else Decimal('0.00')
-
-        qty_count = existing_sale.packing_count if existing_sale else 0
-        profit_calc = qty_count * float(effective_margin)
-        base_litres = qty_count * float(p.base_qty_unit)
-
-        matrix.append({
-            'packing': p,
-            'margin': effective_margin,
-            'count': qty_count,
-            'profit': profit_calc,
-            'base_litres': base_litres
-        })
-
-    context = {
-        'branch': branch,
-        'branches': branches,
-        'sale_date': sale_date,
-        'matrix': matrix,
-        'is_admin': is_admin,
-    }
-    return render(request, 'operations/sales_entry.html', context)
-
+# =========================================================
+# CLIENT MANAGEMENT
+# =========================================================
 
 @login_required
-def sales_list_view(request):
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = user_profile.is_admin if user_profile else request.user.is_superuser
-
-    sales_qs = DailySale.objects.select_related('branch', 'staff', 'product', 'product_packing').all()
-
-    if not is_admin and user_profile and user_profile.branch:
-        sales_qs = sales_qs.filter(branch=user_profile.branch)
-    else:
-        branch_id = request.GET.get('branch_id')
-        if branch_id:
-            sales_qs = sales_qs.filter(branch_id=branch_id)
-
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    if date_from:
-        sales_qs = sales_qs.filter(sale_date__gte=date_from)
-    if date_to:
-        sales_qs = sales_qs.filter(sale_date__lte=date_to)
-
-    branches = Branch.objects.filter(status='active')
-    return render(request, 'operations/sales_list.html', {
-        'sales': sales_qs,
-        'branches': branches,
-        'is_admin': is_admin
-    })
-
-@login_required
-def expense_head_list_view(request):
-    if not request.user.profile.is_admin:
-        messages.error(request, "Permission denied.")
-        return redirect('dashboard')
-
-    expense_heads = ExpenseHead.objects.all()
-    return render(request, 'expense_heads/expense_head_list.html', {'expense_heads': expense_heads})
-
-
-@login_required
-def expense_head_create_view(request):
-    if not request.user.profile.is_admin:
-        messages.error(request, "Permission denied.")
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
-
-        if not name:
-            messages.error(request, "Expense head name is required.")
-        elif ExpenseHead.objects.filter(name__iexact=name).exists():
-            messages.error(request, "This expense head already exists.")
-        else:
-            ExpenseHead.objects.create(name=name)
-            messages.success(request, f"Expense head '{name}' created successfully.")
-            return redirect('expense_head_list')
-
-    return render(request, 'expense_heads/expense_head_form.html', {'title': 'Add New Expense Head'})
-
-
-@login_required
-def expense_head_delete_view(request, pk):
-    if not request.user.profile.is_admin:
-        messages.error(request, "Permission denied.")
-        return redirect('dashboard')
-
-    expense_head = get_object_or_404(ExpenseHead, pk=pk)
-    name = expense_head.name
-    expense_head.delete()
-    messages.success(request, f"Expense head '{name}' deleted successfully.")
-    return redirect('expense_head_list')
-
-@login_required
-def expense_edit_view(request, pk):
-    from operations.models import Expense
-
-    expense = get_object_or_404(Expense, pk=pk)
-
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = user_profile.is_admin if user_profile else request.user.is_superuser
-
-    if not is_admin and user_profile and expense.branch != user_profile.branch:
-        messages.error(request, "Permission denied.")
-        return redirect('expense_list')
-
-    branches = Branch.objects.filter(status='active')
-    expense_heads = ExpenseHead.objects.all()
-
-    if request.method == 'POST':
-        branch_id = request.POST.get('branch')
-        expense_date = request.POST.get('expense_date')
-        expense_head_id = request.POST.get('expense_head')
-        amount = request.POST.get('amount')
-        description = request.POST.get('description', '').strip()
-
-        if not all([branch_id, expense_date, expense_head_id, amount]):
-            messages.error(request, "Please fill all required fields.")
-        else:
-            expense.branch_id = branch_id
-            expense.expense_date = expense_date
-            expense.expense_head_id = expense_head_id
-            expense.amount = amount
-            expense.description = description
-            expense.updated_by = request.user
-            expense.save()
-
-            messages.success(request, "Expense updated successfully.")
-            return redirect('expense_list')
-
-    return render(request, 'operations/expense_form.html', {
-        'expense': expense,
-        'branches': branches,
-        'expense_heads': expense_heads,
-        'is_admin': is_admin,
-        'title': 'Edit Expense',
-    })
-
-
-@login_required
-def vehicle_list_view(request):
-    if not request.user.profile.is_admin:
-        messages.error(request, "Permission denied.")
-        return redirect('dashboard')
-
-    vehicles = Vehicle.objects.select_related('branch').all()
-    return render(request, 'vehicles/vehicle_list.html', {'vehicles': vehicles})
-
-
-@login_required
-def vehicle_create_view(request):
-    if not request.user.profile.is_admin:
-        messages.error(request, "Permission denied.")
-        return redirect('dashboard')
-
-    branches = Branch.objects.all()
-
-    if request.method == 'POST':
-        vehicle_number = request.POST.get('vehicle_number', '').strip()
-        vehicle_type = request.POST.get('vehicle_type', '').strip()
-        branch_id = request.POST.get('branch')
-        driver_name = request.POST.get('driver_name', '').strip()
-        driver_phone = request.POST.get('driver_phone', '').strip()
-
-        if not all([vehicle_number, vehicle_type, branch_id, driver_name, driver_phone]):
-            messages.error(request, "All fields are required.")
-        elif Vehicle.objects.filter(vehicle_number__iexact=vehicle_number).exists():
-            messages.error(request, "This vehicle number already exists.")
-        else:
-            Vehicle.objects.create(
-                vehicle_number=vehicle_number,
-                vehicle_type=vehicle_type,
-                branch_id=branch_id,
-                driver_name=driver_name,
-                driver_phone=driver_phone
-            )
-            messages.success(request, "Vehicle created successfully.")
-            return redirect('vehicle_list')
-
-    return render(request, 'vehicles/vehicle_form.html', {
-        'title': 'Add New Vehicle',
-        'branches': branches
-    })
-
-@login_required
-def vehicle_edit_view(request, pk):
-    if not request.user.profile.is_admin:
-        messages.error(request, "Permission denied.")
-        return redirect('dashboard')
-
-    vehicle = get_object_or_404(Vehicle, pk=pk)
-    branches = Branch.objects.all()
-
-    if request.method == 'POST':
-        vehicle_number = request.POST.get('vehicle_number', '').strip()
-        vehicle_type = request.POST.get('vehicle_type', '').strip()
-        branch_id = request.POST.get('branch')
-        driver_name = request.POST.get('driver_name', '').strip()
-        driver_phone = request.POST.get('driver_phone', '').strip()
-
-        if not all([vehicle_number, vehicle_type, branch_id, driver_name, driver_phone]):
-            messages.error(request, "All fields are required.")
-        elif Vehicle.objects.filter(
-            vehicle_number__iexact=vehicle_number
-        ).exclude(pk=pk).exists():
-            messages.error(request, "This vehicle number already exists.")
-        else:
-            vehicle.vehicle_number = vehicle_number
-            vehicle.vehicle_type = vehicle_type
-            vehicle.branch_id = branch_id
-            vehicle.driver_name = driver_name
-            vehicle.driver_phone = driver_phone
-            vehicle.save()
-
-            messages.success(request, "Vehicle updated successfully.")
-            return redirect('vehicle_list')
-
-    return render(request, 'vehicles/vehicle_form.html', {
-        'title': 'Edit Vehicle',
-        'vehicle': vehicle,
-        'branches': branches
-    })
-
-
-@login_required
-def vehicle_delete_view(request, pk):
-    if not request.user.profile.is_admin:
-        messages.error(request, "Permission denied.")
-        return redirect('dashboard')
-
-    vehicle = get_object_or_404(Vehicle, pk=pk)
-    vehicle.delete()
-
-    messages.success(request, "Vehicle deleted successfully.")
-    return redirect
-
-@login_required
-def expense_list_view(request):
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = user_profile.is_admin if user_profile else request.user.is_superuser
-
-    expenses = Expense.objects.select_related(
-        'branch',
-        'expense_head',
-        'staff'
-    ).all().order_by('-expense_date', '-id')
-
-    if not is_admin and user_profile and user_profile.branch:
-        expenses = expenses.filter(branch=user_profile.branch)
-    else:
-        branch_id = request.GET.get('branch_id')
-        if branch_id:
-            expenses = expenses.filter(branch_id=branch_id)
-
-    expense_head_id = request.GET.get('expense_head_id')
-    if expense_head_id:
-        expenses = expenses.filter(expense_head_id=expense_head_id)
-
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-
-    if date_from:
-        expenses = expenses.filter(expense_date__gte=date_from)
-
-    if date_to:
-        expenses = expenses.filter(expense_date__lte=date_to)
-
-    total_expense = expenses.aggregate(
-        total=Sum('amount')
-    )['total'] or 0
-
-    branches = Branch.objects.filter(status='active')
-    expense_heads = ExpenseHead.objects.all()
-
-    return render(request, 'operations/expense_list.html', {
-        'expenses': expenses,
-        'branches': branches,
-        'expense_heads': expense_heads,
-        'is_admin': is_admin,
-        'date_from': date_from or '',
-        'date_to': date_to or '',
-        'expense_head_id': expense_head_id or '',
-        'total_expense': total_expense,
-    })
-
-
-@login_required
-def expense_export_excel_view(request):
-    expenses = Expense.objects.select_related('branch', 'expense_head', 'staff').all()
-
-    branch_id = request.GET.get('branch_id')
-    if branch_id:
-        expenses = expenses.filter(branch_id=branch_id)
-
-    expense_head_id = request.GET.get('expense_head_id')
-    if expense_head_id:
-        expenses = expenses.filter(expense_head_id=expense_head_id)
-
-    date_from = request.GET.get('date_from')
-    if date_from:
-        expenses = expenses.filter(expense_date__gte=date_from)
-
-    date_to = request.GET.get('date_to')
-    if date_to:
-        expenses = expenses.filter(expense_date__lte=date_to)
-
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = 'Expenses'
-
-    sheet.append(['Date', 'Branch', 'Expense Head', 'Amount', 'Description', 'Added By'])
-
-    for expense in expenses:
-        staff_name = expense.staff.username if expense.staff else ''
-        sheet.append([
-            expense.expense_date,
-            expense.branch.name,
-            expense.expense_head.name,
-            float(expense.amount),
-            expense.description or '',
-            staff_name,
-        ])
-
-    for cell in sheet['A'][1:]:
-        cell.number_format = 'DD-MM-YYYY'
-
-    from openpyxl.styles import Alignment
-
-    for row in sheet.iter_rows():
-     for cell in row:
-         cell.alignment = Alignment(
-            horizontal='center',
-            vertical='center'
+def client_list(request):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+    ):
+        return redirect("owner_login")
+
+    search = request.GET.get(
+        "search",
+        ""
+    ).strip()
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    if is_admin_user(request.user):
+
+        clients = Client.objects.select_related(
+            "owner",
+            "business_type",
+            "country",
+            "state",
+            "district",
+            "area",
+        ).order_by(
+            "-created_at"
         )
 
-    # Center align and wrap text
-    for row in sheet.iter_rows():
-        for cell in row:
-          cell.alignment = Alignment(
-            horizontal='center',
-            vertical='center',
-            wrap_text=True
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    else:
+
+        clients = Client.objects.filter(
+            owner=request.user
+        ).select_related(
+            "owner",
+            "business_type",
+            "country",
+            "state",
+            "district",
+            "area",
+        ).order_by(
+            "-created_at"
         )
 
+    if search:
 
-    sheet.column_dimensions['A'].width = 15
-    sheet.column_dimensions['B'].width = 20
-    sheet.column_dimensions['C'].width = 25
-    sheet.column_dimensions['D'].width = 15
-    sheet.column_dimensions['E'].width = 50
-    sheet.column_dimensions['F'].width = 20
+        clients = clients.filter(
+            Q(company_name__icontains=search)
+            | Q(email__icontains=search)
+            | Q(phone__icontains=search)
+            | Q(owner__username__icontains=search)
+            | Q(owner__first_name__icontains=search)
+            | Q(owner__last_name__icontains=search)
+        )
 
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    paginator = Paginator(
+        clients,
+        10
     )
 
-    response['Content-Disposition'] = 'attachment; filename="expense_report.xlsx"'
-
-    workbook.save(response)
-
-    return response
-
-@login_required
-def expense_vehicle_details_view(request):
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = user_profile.is_admin if user_profile else request.user.is_superuser
-
-    branch_id = request.GET.get('branch_id')
-
-    vehicles = Vehicle.objects.select_related('branch').all()
-
-    if not is_admin and user_profile and user_profile.branch:
-        vehicles = vehicles.filter(branch=user_profile.branch)
-
-    elif branch_id:
-        vehicles = vehicles.filter(branch_id=branch_id)
-
-    branches = Branch.objects.filter(status='active')
-
-    return render(request, 'operations/expense_vehicle_details.html', {
-        'vehicles': vehicles,
-        'branches': branches,
-        'is_admin': is_admin,
-        'selected_branch_id': branch_id or '',
-    })
-
-@login_required
-def expense_entry_view(request):
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = user_profile.is_admin if user_profile else request.user.is_superuser
-
-    today = timezone.now().date()
-
-    # ---------------------------------
-    # Active branches
-    # ---------------------------------
-
-    if not is_admin and user_profile and user_profile.branch:
-        branches = Branch.objects.filter(
-            id=user_profile.branch.id,
-            status='active'
-        )
-    else:
-        branches = Branch.objects.filter(status='active')
-
-    # ---------------------------------
-    # Expense heads
-    # ---------------------------------
-
-    expense_heads = ExpenseHead.objects.all()
-
-    # ---------------------------------
-    # Vehicles
-    # ---------------------------------
-
-    vehicles = Vehicle.objects.select_related('branch').all()
-
-    # ---------------------------------
-    # GET values
-    # ---------------------------------
-
-    selected_branch_id = request.GET.get('branch_id')
-    selected_expense_head_id = request.GET.get('expense_head_id')
-
-    entry_mode = request.GET.get('entry_mode', '').strip()
-
-    selected_branch = None
-    selected_expense_head = None
-
-    # ---------------------------------
-    # Selected branch
-    # ---------------------------------
-
-    if selected_branch_id:
-
-        if not is_admin and user_profile and user_profile.branch:
-
-            if str(selected_branch_id) != str(user_profile.branch.id):
-                messages.error(request, "Permission denied.")
-                return redirect('expense_entry')
-
-        selected_branch = Branch.objects.filter(
-            id=selected_branch_id,
-            status='active'
-        ).first()
-
-    # ---------------------------------
-    # Selected expense head
-    # ---------------------------------
-
-    if selected_expense_head_id:
-
-        selected_expense_head = ExpenseHead.objects.filter(
-            id=selected_expense_head_id
-        ).first()
-
-    # ---------------------------------
-    # IMPORTANT
-    # Do NOT auto select Branch
-    # ---------------------------------
-
-    if entry_mode == 'branch' and selected_branch:
-
-        entry_mode = 'branch'
-
-    elif entry_mode == 'expense_head' and selected_expense_head:
-
-        entry_mode = 'expense_head'
-
-    else:
-
-        entry_mode = ''
-
-    # ---------------------------------
-    # Branch mode rows
-    # ---------------------------------
-
-    branch_expense_rows = []
-
-    if entry_mode == 'branch' and selected_branch:
-
-        for head in expense_heads:
-
-            if head.name.strip().lower() == 'vehicle expense':
-
-                vehicle_list = vehicles.filter(
-                    branch=selected_branch
-                )
-
-            else:
-
-                vehicle_list = Vehicle.objects.none()
-
-            branch_expense_rows.append({
-                'expense_head': head,
-                'vehicle_list': vehicle_list
-            })
-
-    # ---------------------------------
-    # Expense head mode rows
-    # ---------------------------------
-
-    branch_rows = []
-
-    if entry_mode == 'expense_head' and selected_expense_head:
-
-        for branch in branches:
-
-            branch_vehicles = vehicles.filter(
-                branch=branch
-            )
-
-            branch_rows.append({
-                'branch': branch,
-                'vehicles': branch_vehicles
-            })
-
-    # ---------------------------------
-    # POST
-    # ---------------------------------
-
-    if request.method == 'POST':
-
-        post_mode = request.POST.get('entry_mode', '').strip()
-
-        expense_date = request.POST.get('expense_date', '').strip()
-
-        if not expense_date:
-
-            messages.error(
-                request,
-                "Please select the expense date."
-            )
-
-            return redirect('expense_entry')
-
-        saved_count = 0
-
-        # =========================================
-        # BRANCH MODE
-        # =========================================
-
-        if post_mode == 'branch':
-
-            branch_id = request.POST.get('branch_id')
-
-            if not branch_id:
-
-                messages.error(
-                    request,
-                    "Please select a branch."
-                )
-
-                return redirect('expense_entry')
-
-            # Permission check
-            if (
-                not is_admin
-                and user_profile
-                and user_profile.branch
-                and str(branch_id) != str(user_profile.branch.id)
-            ):
-
-                messages.error(
-                    request,
-                    "Permission denied."
-                )
-
-                return redirect('expense_entry')
-
-            branch = get_object_or_404(
-                Branch,
-                id=branch_id,
-                status='active'
-            )
-
-            for head in expense_heads:
-
-                amount = request.POST.get(
-                    f'amount_{head.id}',
-                    ''
-                ).strip()
-
-                remark = request.POST.get(
-                    f'remark_{head.id}',
-                    ''
-                ).strip()
-
-                vehicle_id = request.POST.get(
-                    f'vehicle_{head.id}'
-                )
-
-                # Nothing entered
-                if not amount and not remark:
-
-                    continue
-
-                # Amount required
-                if not amount:
-
-                    messages.error(
-                        request,
-                        f"Amount is required for {head.name}."
-                    )
-
-                    return redirect(
-                        f'/expenses/add/?branch_id={branch.id}&entry_mode=branch'
-                    )
-
-                description = remark
-
-                # ---------------------------------
-                # Vehicle expense
-                # ---------------------------------
-
-                if (
-                    head.name.strip().lower()
-                    == 'vehicle expense'
-                    and vehicle_id
-                ):
-
-                    try:
-
-                        vehicle = Vehicle.objects.select_related(
-                            'branch'
-                        ).get(
-                            id=vehicle_id,
-                            branch=branch
-                        )
-
-                        vehicle_details = (
-                            f"Vehicle Number: "
-                            f"{vehicle.vehicle_number}\n"
-                            f"Vehicle Type: "
-                            f"{vehicle.vehicle_type}\n"
-                            f"Branch: "
-                            f"{vehicle.branch.name}\n"
-                            f"Driver Name: "
-                            f"{vehicle.driver_name}\n"
-                            f"Driver Phone: "
-                            f"{vehicle.driver_phone}"
-                        )
-
-                        if description:
-
-                            description = (
-                                f"{description}\n\n"
-                                f"{vehicle_details}"
-                            )
-
-                        else:
-
-                            description = vehicle_details
-
-                    except Vehicle.DoesNotExist:
-
-                        messages.error(
-                            request,
-                            "Selected vehicle not found for the selected branch."
-                        )
-
-                        return redirect(
-                            f'/expenses/add/?branch_id={branch.id}&entry_mode=branch'
-                        )
-
-                # ---------------------------------
-                # Save expense
-                # ---------------------------------
-
-                Expense.objects.create(
-                    branch=branch,
-                    staff=request.user,
-                    expense_date=expense_date,
-                    expense_head=head,
-                    amount=amount,
-                    description=description,
-                    created_by=request.user,
-                    updated_by=request.user
-                )
-
-                saved_count += 1
-
-        # =========================================
-        # EXPENSE HEAD MODE
-        # =========================================
-
-        elif post_mode == 'expense_head':
-
-            expense_head_id = request.POST.get(
-                'expense_head_id'
-            )
-
-            if not expense_head_id:
-
-                messages.error(
-                    request,
-                    "Please select an expense head."
-                )
-
-                return redirect('expense_entry')
-
-            expense_head = get_object_or_404(
-                ExpenseHead,
-                id=expense_head_id
-            )
-
-            for branch in branches:
-
-                # Permission check
-                if (
-                    not is_admin
-                    and user_profile
-                    and user_profile.branch
-                    and branch.id != user_profile.branch.id
-                ):
-
-                    continue
-
-                amount = request.POST.get(
-                    f'branch_amount_{branch.id}',
-                    ''
-                ).strip()
-
-                remark = request.POST.get(
-                    f'branch_remark_{branch.id}',
-                    ''
-                ).strip()
-
-                vehicle_id = request.POST.get(
-                    f'branch_vehicle_{branch.id}'
-                )
-
-                # Nothing entered
-                if not amount and not remark:
-
-                    continue
-
-                # Amount required
-                if not amount:
-
-                    messages.error(
-                        request,
-                        f"Amount is required for {branch.name}."
-                    )
-
-                    return redirect(
-                        f'/expenses/add/?expense_head_id={expense_head.id}&entry_mode=expense_head'
-                    )
-
-                description = remark
-
-                # ---------------------------------
-                # Vehicle expense
-                # ---------------------------------
-
-                if (
-                    expense_head.name.strip().lower()
-                    == 'vehicle expense'
-                    and vehicle_id
-                ):
-
-                    try:
-
-                        vehicle = Vehicle.objects.select_related(
-                            'branch'
-                        ).get(
-                            id=vehicle_id,
-                            branch=branch
-                        )
-
-                        vehicle_details = (
-                            f"Vehicle Number: "
-                            f"{vehicle.vehicle_number}\n"
-                            f"Vehicle Type: "
-                            f"{vehicle.vehicle_type}\n"
-                            f"Branch: "
-                            f"{vehicle.branch.name}\n"
-                            f"Driver Name: "
-                            f"{vehicle.driver_name}\n"
-                            f"Driver Phone: "
-                            f"{vehicle.driver_phone}"
-                        )
-
-                        if description:
-
-                            description = (
-                                f"{description}\n\n"
-                                f"{vehicle_details}"
-                            )
-
-                        else:
-
-                            description = vehicle_details
-
-                    except Vehicle.DoesNotExist:
-
-                        messages.error(
-                            request,
-                            "Selected vehicle not found for the selected branch."
-                        )
-
-                        return redirect(
-                            f'/expenses/add/?expense_head_id={expense_head.id}&entry_mode=expense_head'
-                        )
-
-                # ---------------------------------
-                # Save expense
-                # ---------------------------------
-
-                Expense.objects.create(
-                    branch=branch,
-                    staff=request.user,
-                    expense_date=expense_date,
-                    expense_head=expense_head,
-                    amount=amount,
-                    description=description,
-                    created_by=request.user,
-                    updated_by=request.user
-                )
-
-                saved_count += 1
-
-        # =========================================
-        # INVALID MODE
-        # =========================================
-
-        else:
-
-            messages.error(
-                request,
-                "Please select Branch or Expense Head."
-            )
-
-            return redirect('expense_entry')
-
-        # =========================================
-        # SUCCESS
-        # =========================================
-
-        if saved_count > 0:
-
-            messages.success(
-                request,
-                f"{saved_count} expense record(s) added successfully."
-            )
-
-            return redirect('expense_list')
-
-        messages.warning(
-            request,
-            "No expense data entered."
-        )
-
-        return redirect('expense_entry')
-
-    # ---------------------------------
-    # Render
-    # ---------------------------------
+    page_obj = paginator.get_page(
+        request.GET.get("page")
+    )
 
     return render(
         request,
-        'operations/expense_form.html',
+        "magic_pro/client/client_list.html",
         {
-            'branches': branches,
-            'expense_heads': expense_heads,
-            'vehicles': vehicles,
-            'is_admin': is_admin,
-            'selected_branch': selected_branch,
-            'selected_expense_head': selected_expense_head,
-            'entry_mode': entry_mode,
-            'branch_expense_rows': branch_expense_rows,
-            'branch_rows': branch_rows,
-            'today': today,
-            'title': 'Add Expense',
+            "page_obj": page_obj,
+            "search": search,
         }
     )
 
+
+# =========================================================
+# OWNER DETAILS
+# =========================================================
+
 @login_required
-def expense_edit_view(request, pk):
-    expense = get_object_or_404(
-        Expense.objects.select_related(
-            'branch',
-            'expense_head'
-        ),
+def owner_details(request, pk):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+    ):
+
+        messages.error(
+            request,
+            "You are not authorized to access this page."
+        )
+
+        return redirect(
+            "owner_dashboard"
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    if is_admin_user(request.user):
+
+        client = get_object_or_404(
+            Client.objects.select_related(
+                "owner",
+                "country",
+            ),
+            pk=pk
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    else:
+
+        client = get_object_or_404(
+            Client.objects.select_related(
+                "owner",
+                "country",
+            ),
+            pk=pk,
+            owner=request.user
+        )
+
+    owner_dial_code = ""
+
+    if client.country:
+
+        owner_dial_code = (
+            client.country.dial_code or ""
+        )
+
+    return render(
+        request,
+        "magic_pro/client/owner_details.html",
+        {
+            "client": client,
+            "owner": client.owner,
+            "owner_dial_code": owner_dial_code,
+        }
+    )
+
+
+# =========================================================
+# CREATE CLIENT + OWNER LOGIN
+# =========================================================
+
+@login_required
+def client_create(request):
+
+    # Only Super Admin can create a new Company
+    if not is_admin_user(request.user):
+
+        return redirect(
+            "owner_dashboard"
+        )
+
+    if request.method == "POST":
+
+        form = ClientOwnerForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            client = form.save()
+
+            messages.success(
+                request,
+                "Client and login account created successfully."
+            )
+
+            return redirect(
+                "client_list"
+            )
+
+    else:
+
+        form = ClientOwnerForm()
+
+    return render(
+        request,
+        "magic_pro/client/client_form.html",
+        {
+            "form": form,
+            "title": "Add Client",
+            "client": None,
+            "owner_dial_code": "",
+        }
+    )
+
+
+# =========================================================
+# EDIT CLIENT
+# =========================================================
+
+@login_required
+def client_edit(request, pk):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    if is_admin_user(request.user):
+
+        client = get_object_or_404(
+            Client.objects.select_related(
+                "owner",
+                "country",
+            ),
+            pk=pk
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    else:
+
+        client = get_object_or_404(
+            Client.objects.select_related(
+                "owner",
+                "country",
+            ),
+            pk=pk,
+            owner=request.user
+        )
+
+    if request.method == "POST":
+
+        form = ClientOwnerForm(
+            request.POST,
+            instance=client
+        )
+
+        # -------------------------------------------------
+        # PASSWORD IS OPTIONAL DURING EDIT
+        # -------------------------------------------------
+
+        form.fields[
+            "owner_password"
+        ].required = False
+
+        form.fields[
+            "owner_confirm_password"
+        ].required = False
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                "Client and owner information updated successfully."
+            )
+
+            return redirect(
+                "client_list"
+            )
+
+    else:
+
+        form = ClientOwnerForm(
+            instance=client
+        )
+
+        # -------------------------------------------------
+        # PASSWORD IS OPTIONAL DURING EDIT
+        # -------------------------------------------------
+
+        form.fields[
+            "owner_password"
+        ].required = False
+
+        form.fields[
+            "owner_confirm_password"
+        ].required = False
+
+        # -------------------------------------------------
+        # LOAD EXISTING OWNER DETAILS
+        # -------------------------------------------------
+
+        if client.owner:
+
+            form.fields[
+                "owner_username"
+            ].initial = client.owner.username
+
+            form.fields[
+                "owner_first_name"
+            ].initial = client.owner.first_name
+
+            form.fields[
+                "owner_last_name"
+            ].initial = client.owner.last_name
+
+            form.fields[
+                "owner_email"
+            ].initial = client.owner.email
+
+            form.fields[
+                "owner_phone"
+            ].initial = client.owner.phone
+
+    # -----------------------------------------------------
+    # OWNER COUNTRY DIAL CODE
+    # -----------------------------------------------------
+
+    owner_dial_code = ""
+
+    if client.country:
+
+        owner_dial_code = (
+            client.country.dial_code or ""
+        )
+
+    return render(
+        request,
+        "magic_pro/client/client_form.html",
+        {
+            "form": form,
+            "title": "Edit Client",
+            "client": client,
+            "owner_dial_code": owner_dial_code,
+        }
+    )
+
+
+# =========================================================
+# DELETE CLIENT
+# =========================================================
+
+@login_required
+def client_delete(request, pk):
+
+    # Only Super Admin can delete a Company
+    if not is_admin_user(request.user):
+
+        return redirect(
+            "owner_dashboard"
+        )
+
+    client = get_object_or_404(
+        Client,
         pk=pk
     )
 
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = (
-        user_profile.is_admin
-        if user_profile
-        else request.user.is_superuser
+    owner = client.owner
+
+    client.delete()
+
+    if owner:
+        owner.delete()
+
+    messages.success(
+        request,
+        "Client deleted successfully."
     )
 
-    # Non-admin can edit only own branch expense
-    if (
-        not is_admin
-        and user_profile
-        and user_profile.branch
-        and expense.branch_id != user_profile.branch.id
-    ):
-        messages.error(request, "Permission denied.")
-        return redirect('expense_list')
+    return redirect(
+        "client_list"
+    )
 
-    if is_admin:
-        branches = Branch.objects.filter(
-            status='active'
+
+# =========================================================
+# BRANCH MANAGEMENT
+# =========================================================
+
+@login_required
+def branch_list(request):
+
+    if not is_admin_user(request.user) and not is_owner_user(request.user):
+
+        return redirect(
+            "owner_login"
         )
+
+    search = request.GET.get(
+        "search",
+        ""
+    ).strip()
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    if is_admin_user(request.user):
+
+        branches = Branch.objects.select_related(
+            "client",
+            "user",
+        ).order_by(
+            "-created_at"
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
     else:
+
         branches = Branch.objects.filter(
-            id=user_profile.branch.id,
-            status='active'
+            client__owner=request.user
+        ).select_related(
+            "client",
+            "user",
+        ).order_by(
+            "-created_at"
         )
 
-    expense_heads = ExpenseHead.objects.all()
+    if search:
 
-    if request.method == 'POST':
-        branch_id = request.POST.get(
-            'branch'
+        branches = branches.filter(
+            Q(name__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(email__icontains=search) |
+            Q(client__company_name__icontains=search)
         )
 
-        expense_date = request.POST.get(
-            'expense_date'
-        )
+    paginator = Paginator(
+        branches,
+        10
+    )
 
-        expense_head_id = request.POST.get(
-            'expense_head'
-        )
-
-        amount = request.POST.get(
-            'amount'
-        )
-
-        description = request.POST.get(
-            'description',
-            ''
-        ).strip()
-
-        if not all([
-            branch_id,
-            expense_date,
-            expense_head_id,
-            amount
-        ]):
-            messages.error(
-                request,
-                "Please fill all required fields."
-            )
-
-        else:
-            # Non-admin cannot move expense to another branch
-            if (
-                not is_admin
-                and user_profile
-                and user_profile.branch
-                and str(branch_id)
-                != str(user_profile.branch.id)
-            ):
-                messages.error(
-                    request,
-                    "Permission denied."
-                )
-                return redirect('expense_list')
-
-            branch = get_object_or_404(
-                Branch,
-                id=branch_id,
-                status='active'
-            )
-
-            expense_head = get_object_or_404(
-                ExpenseHead,
-                id=expense_head_id
-            )
-
-            expense.branch = branch
-            expense.expense_date = expense_date
-            expense.expense_head = expense_head
-            expense.amount = amount
-            expense.description = description
-            expense.updated_by = request.user
-
-            expense.save()
-
-            messages.success(
-                request,
-                "Expense updated successfully."
-            )
-
-            return redirect('expense_list')
+    page_obj = paginator.get_page(
+        request.GET.get("page")
+    )
 
     return render(
         request,
-        'operations/expense_edit_form.html',
+        "magic_pro/branch/branch_list.html",
         {
-            'expense': expense,
-            'branches': branches,
-            'expense_heads': expense_heads,
-            'is_admin': is_admin,
-            'title': 'Edit Expense',
+            "page_obj": page_obj,
+            "search": search,
         }
     )
+
+
+# =========================================================
+# CREATE BRANCH
+# =========================================================
+
 @login_required
-def expense_delete_view(request, pk):
-    from operations.models import Expense
+def branch_create(request):
 
-    expense = get_object_or_404(Expense, pk=pk)
+    if not is_admin_user(request.user) and not is_owner_user(request.user):
 
-    user_profile = getattr(request.user, 'profile', None)
-    is_admin = user_profile.is_admin if user_profile else request.user.is_superuser
+        return redirect(
+            "owner_login"
+        )
 
-    if not is_admin and user_profile and expense.branch != user_profile.branch:
-        messages.error(request, "Permission denied.")
-        return redirect('expense_list')
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
 
-    expense.delete()
-    messages.success(request, "Expense deleted successfully.")
-    return redirect('expense_list')
+    if is_admin_user(request.user):
+
+        if request.method == "POST":
+
+            form = BranchForm(
+                request.POST
+            )
+
+            if form.is_valid():
+
+                form.save()
+
+                messages.success(
+                    request,
+                    "Branch created successfully."
+                )
+
+                return redirect(
+                    "branch_list"
+                )
+
+        else:
+
+            form = BranchForm()
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    else:
+
+        client = get_object_or_404(
+            Client,
+            owner=request.user
+        )
+
+        if request.method == "POST":
+
+            form = BranchForm(
+                request.POST
+            )
+
+            # Owner can create a Branch
+            # only under his own Company.
+            if "client" in form.fields:
+
+                form.fields[
+                    "client"
+                ].queryset = Client.objects.filter(
+                    pk=client.pk
+                )
+
+            if form.is_valid():
+
+                branch = form.save(
+                    commit=False
+                )
+
+                branch.client = client
+
+                branch.save()
+
+                messages.success(
+                    request,
+                    "Branch created successfully."
+                )
+
+                return redirect(
+                    "branch_list"
+                )
+
+        else:
+
+            form = BranchForm()
+
+            if "client" in form.fields:
+
+                form.fields[
+                    "client"
+                ].queryset = Client.objects.filter(
+                    pk=client.pk
+                )
+
+                form.fields[
+                    "client"
+                ].initial = client.pk
+
+    return render(
+        request,
+        "magic_pro/branch/branch_form.html",
+        {
+            "form": form,
+            "title": "Add Branch",
+        }
+    )
+
+
+# =========================================================
+# EDIT BRANCH
+# =========================================================
+
+@login_required
+def branch_edit(request, pk):
+
+    if not is_admin_user(request.user) and not is_owner_user(request.user):
+
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    if is_admin_user(request.user):
+
+        branch = get_object_or_404(
+            Branch,
+            pk=pk
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    else:
+
+        branch = get_object_or_404(
+            Branch,
+            pk=pk,
+            client__owner=request.user
+        )
+
+    if request.method == "POST":
+
+        form = BranchForm(
+            request.POST,
+            instance=branch
+        )
+
+        # Owner cannot move Branch
+        # to another Company.
+        if is_owner_user(request.user):
+
+            client = get_object_or_404(
+                Client,
+                owner=request.user
+            )
+
+            if "client" in form.fields:
+
+                form.fields[
+                    "client"
+                ].queryset = Client.objects.filter(
+                    pk=client.pk
+                )
+
+        if form.is_valid():
+
+            updated_branch = form.save(
+                commit=False
+            )
+
+            if is_owner_user(request.user):
+
+                updated_branch.client = get_object_or_404(
+                    Client,
+                    owner=request.user
+                )
+
+            updated_branch.save()
+
+            messages.success(
+                request,
+                "Branch updated successfully."
+            )
+
+            return redirect(
+                "branch_list"
+            )
+
+    else:
+
+        form = BranchForm(
+            instance=branch
+        )
+
+        if is_owner_user(request.user):
+
+            client = get_object_or_404(
+                Client,
+                owner=request.user
+            )
+
+            if "client" in form.fields:
+
+                form.fields[
+                    "client"
+                ].queryset = Client.objects.filter(
+                    pk=client.pk
+                )
+
+    return render(
+        request,
+        "magic_pro/branch/branch_form.html",
+        {
+            "form": form,
+            "title": "Edit Branch",
+            "branch": branch,
+        }
+    )
+
+
+# =========================================================
+# DELETE BRANCH
+# =========================================================
+
+@login_required
+def branch_delete(request, pk):
+
+    if not is_admin_user(request.user) and not is_owner_user(request.user):
+
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    if is_admin_user(request.user):
+
+        branch = get_object_or_404(
+            Branch,
+            pk=pk
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    else:
+
+        branch = get_object_or_404(
+            Branch,
+            pk=pk,
+            client__owner=request.user
+        )
+
+    branch.delete()
+
+    messages.success(
+        request,
+        "Branch deleted successfully."
+    )
+
+    return redirect(
+        "branch_list"
+    )
+
+
+# =========================================================
+# CUSTOMER MANAGEMENT
+# =========================================================
+
+@login_required
+def customer_list(request):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    search = request.GET.get(
+        "search",
+        ""
+    ).strip()
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        branch = request.user.branch_profile
+
+        customers = Customer.objects.filter(
+            branch=branch
+        ).select_related(
+            "branch",
+            "branch__client",
+        ).order_by(
+            "-created_at"
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    elif is_owner_user(request.user):
+
+        customers = Customer.objects.filter(
+            branch__client__owner=request.user
+        ).select_related(
+            "branch",
+            "branch__client",
+        ).order_by(
+            "-created_at"
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    else:
+
+        customers = Customer.objects.select_related(
+            "branch",
+            "branch__client",
+        ).order_by(
+            "-created_at"
+        )
+
+    if search:
+
+        customers = customers.filter(
+            Q(name__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(branch__name__icontains=search) |
+            Q(
+                branch__client__company_name__icontains=search
+            )
+        )
+
+    paginator = Paginator(
+        customers,
+        10
+    )
+
+    page_obj = paginator.get_page(
+        request.GET.get("page")
+    )
+
+    return render(
+        request,
+        "magic_pro/customer/customer_list.html",
+        {
+            "page_obj": page_obj,
+            "search": search,
+            "is_branch_user": is_branch_user(request.user),
+        }
+    )
+
+
+# =========================================================
+# CUSTOMER EVENTS LIST
+# =========================================================
+
+@login_required
+def customer_event_list(request):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    search = request.GET.get(
+        "search",
+        ""
+    ).strip()
+
+    selected_customer_id = request.GET.get(
+        "customer",
+        ""
+    ).strip()
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        customers = Customer.objects.filter(
+            branch=request.user.branch_profile
+        ).select_related(
+            "branch",
+            "branch__client",
+        ).order_by(
+            "name"
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    elif is_owner_user(request.user):
+
+        customers = Customer.objects.filter(
+            branch__client__owner=request.user
+        ).select_related(
+            "branch",
+            "branch__client",
+        ).order_by(
+            "name"
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    else:
+
+        customers = Customer.objects.select_related(
+            "branch",
+            "branch__client",
+        ).order_by(
+            "name"
+        )
+
+    # -----------------------------------------------------
+    # SEARCH BY MOBILE NUMBER
+    # -----------------------------------------------------
+
+    if search:
+
+        customers = customers.filter(
+            phone__icontains=search
+        )
+
+    selected_customer = None
+
+    # -----------------------------------------------------
+    # SELECTED CUSTOMER
+    # -----------------------------------------------------
+
+    if selected_customer_id:
+
+        try:
+
+            selected_customer = customers.get(
+                pk=selected_customer_id
+            )
+
+        except Customer.DoesNotExist:
+
+            selected_customer = None
+
+    # -----------------------------------------------------
+    # AUTO SELECT FIRST MATCH
+    # -----------------------------------------------------
+
+    elif search and customers.exists():
+
+        selected_customer = customers.first()
+
+    events = CustomerEvent.objects.none()
+
+    if selected_customer:
+
+        events = CustomerEvent.objects.filter(
+            customer=selected_customer
+        ).select_related(
+            "event_name"
+        ).order_by(
+            "event_date",
+            "-id"
+        )
+
+    return render(
+        request,
+        "magic_pro/customer/customer_event_list.html",
+        {
+            "customers": customers,
+            "search": search,
+            "selected_customer": selected_customer,
+            "events": events,
+            "is_branch_user": is_branch_user(request.user),
+        }
+    )
+
+
+# =========================================================
+# CREATE CUSTOMER EVENT
+# =========================================================
+
+@login_required
+def customer_event_create(request, customer_pk):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        customer = get_object_or_404(
+            Customer,
+            pk=customer_pk,
+            branch=request.user.branch_profile
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    elif is_owner_user(request.user):
+
+        customer = get_object_or_404(
+            Customer,
+            pk=customer_pk,
+            branch__client__owner=request.user
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    else:
+
+        customer = get_object_or_404(
+            Customer,
+            pk=customer_pk
+        )
+
+    if request.method == "POST":
+
+        form = CustomerEventForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            event = form.save(
+                commit=False
+            )
+
+            event.customer = customer
+
+            event.save()
+
+            messages.success(
+                request,
+                "Customer event added successfully."
+            )
+
+            return redirect(
+                f"/owner/customer-events/?search={customer.phone}&customer={customer.id}"
+            )
+
+    else:
+
+        form = CustomerEventForm()
+
+    return render(
+        request,
+        "magic_pro/customer/customer_event_form.html",
+        {
+            "form": form,
+            "customer": customer,
+            "edit_mode": False,
+        }
+    )
+
+
+# =========================================================
+# EDIT CUSTOMER EVENT
+# =========================================================
+
+@login_required
+def customer_event_edit(request, pk):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        event = CustomerEvent.objects.filter(
+            pk=pk,
+            customer__branch=request.user.branch_profile
+        ).select_related(
+            "customer",
+            "customer__branch",
+            "event_name"
+        ).first()
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    elif is_owner_user(request.user):
+
+        event = CustomerEvent.objects.filter(
+            pk=pk,
+            customer__branch__client__owner=request.user
+        ).select_related(
+            "customer",
+            "customer__branch",
+            "event_name"
+        ).first()
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    else:
+
+        event = CustomerEvent.objects.filter(
+            pk=pk
+        ).select_related(
+            "customer",
+            "customer__branch",
+            "event_name"
+        ).first()
+
+    if not event:
+
+        messages.error(
+            request,
+            "Customer event not found."
+        )
+
+        return redirect(
+            "customer_event_list"
+        )
+
+    customer = event.customer
+
+    if request.method == "POST":
+
+        form = CustomerEventForm(
+            request.POST,
+            instance=event
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                "Customer event updated successfully."
+            )
+
+            return redirect(
+                f"/owner/customer-events/?search={customer.phone}&customer={customer.id}"
+            )
+
+    else:
+
+        form = CustomerEventForm(
+            instance=event
+        )
+
+    return render(
+        request,
+        "magic_pro/customer/customer_event_form.html",
+        {
+            "form": form,
+            "customer": customer,
+            "event": event,
+            "edit_mode": True,
+        }
+    )
+
+
+# =========================================================
+# DELETE CUSTOMER EVENT
+# =========================================================
+
+@login_required
+def customer_event_delete(request, pk):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        event = get_object_or_404(
+            CustomerEvent.objects.select_related(
+                "customer",
+                "customer__branch",
+            ),
+            pk=pk,
+            customer__branch=request.user.branch_profile
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    elif is_owner_user(request.user):
+
+        event = get_object_or_404(
+            CustomerEvent.objects.select_related(
+                "customer",
+                "customer__branch",
+            ),
+            pk=pk,
+            customer__branch__client__owner=request.user
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    else:
+
+        event = get_object_or_404(
+            CustomerEvent.objects.select_related(
+                "customer",
+                "customer__branch",
+            ),
+            pk=pk
+        )
+
+    customer = event.customer
+
+    event.delete()
+
+    messages.success(
+        request,
+        "Customer event deleted successfully."
+    )
+
+    return redirect(
+        f"/owner/customer-events/?search={customer.phone}&customer={customer.id}"
+    )
+
+
+# =========================================================
+# CUSTOMER VISIT MESSAGE
+# =========================================================
+
+def build_customer_visit_message(customer):
+
+    branch_name = ""
+    company_name = ""
+
+    if customer.branch:
+
+        branch_name = customer.branch.name
+
+        if customer.branch.client:
+
+            company_name = (
+                customer.branch.client.company_name
+            )
+
+    return (
+        f"Hi {customer.name},\n\n"
+        f"Thank you for visiting {branch_name} "
+        f"- {company_name}.\n\n"
+        f"We look forward to serving you again!"
+    )
+
+
+# =========================================================
+# CREATE CUSTOMER
+# =========================================================
+
+@login_required
+def customer_create(request):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    message_text = ""
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        branch = request.user.branch_profile
+
+        if request.method == "POST":
+
+            form = BranchCustomerForm(
+                request.POST
+            )
+
+            if form.is_valid():
+
+                customer = form.save(
+                    commit=False
+                )
+
+                customer.branch = branch
+
+                customer.save()
+
+                message_text = (
+                    build_customer_visit_message(
+                        customer
+                    )
+                )
+
+                messages.success(
+                    request,
+                    "Customer created successfully."
+                )
+
+                return redirect(
+                    "customer_list"
+                )
+
+        else:
+
+            form = BranchCustomerForm()
+
+        return render(
+            request,
+            "magic_pro/customer/branch_customer_form.html",
+            {
+                "form": form,
+                "title": "Add Customer",
+                "branch": branch,
+                "message_text": message_text,
+            }
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    if is_owner_user(request.user):
+
+        client = get_object_or_404(
+            Client,
+            owner=request.user
+        )
+
+        if request.method == "POST":
+
+            form = CustomerForm(
+                request.POST
+            )
+
+            if form.is_valid():
+
+                customer = form.save(
+                    commit=False
+                )
+
+                # Owner can create Customer
+                # only under his own Company.
+                if customer.branch.client_id != client.id:
+
+                    form.add_error(
+                        "branch",
+                        "You can only select a branch from your own company."
+                    )
+
+                else:
+
+                    customer.save()
+
+                    message_text = (
+                        build_customer_visit_message(
+                            customer
+                        )
+                    )
+
+                    messages.success(
+                        request,
+                        "Customer created successfully."
+                    )
+
+                    return redirect(
+                        "customer_list"
+                    )
+
+        else:
+
+            form = CustomerForm()
+
+        # Owner can see only his own Company's branches.
+        if "branch" in form.fields:
+
+            form.fields[
+                "branch"
+            ].queryset = Branch.objects.filter(
+                client=client
+            ).order_by(
+                "name"
+            )
+
+        return render(
+            request,
+            "magic_pro/customer/customer_form.html",
+            {
+                "form": form,
+                "title": "Add Customer",
+                "message_text": message_text,
+            }
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    if request.method == "POST":
+
+        form = CustomerForm(
+            request.POST
+        )
+
+        if form.is_valid():
+
+            customer = form.save()
+
+            message_text = (
+                build_customer_visit_message(
+                    customer
+                )
+            )
+
+            messages.success(
+                request,
+                "Customer created successfully."
+            )
+
+            return redirect(
+                "customer_list"
+            )
+
+    else:
+
+        form = CustomerForm()
+
+    return render(
+        request,
+        "magic_pro/customer/customer_form.html",
+        {
+            "form": form,
+            "title": "Add Customer",
+            "message_text": message_text,
+        }
+    )
+
+
+# =========================================================
+# EDIT CUSTOMER
+# =========================================================
+
+@login_required
+def customer_edit(request, pk):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        branch = request.user.branch_profile
+
+        customer = get_object_or_404(
+            Customer,
+            pk=pk,
+            branch=branch
+        )
+
+        if request.method == "POST":
+
+            form = BranchCustomerForm(
+                request.POST,
+                instance=customer
+            )
+
+            if form.is_valid():
+
+                updated_customer = form.save(
+                    commit=False
+                )
+
+                updated_customer.branch = branch
+
+                updated_customer.save()
+
+                messages.success(
+                    request,
+                    "Customer updated successfully."
+                )
+
+                return redirect(
+                    "customer_list"
+                )
+
+        else:
+
+            form = BranchCustomerForm(
+                instance=customer
+            )
+
+        return render(
+            request,
+            "magic_pro/customer/branch_customer_form.html",
+            {
+                "form": form,
+                "title": "Edit Customer",
+                "branch": branch,
+                "customer": customer,
+            }
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    if is_owner_user(request.user):
+
+        customer = get_object_or_404(
+            Customer,
+            pk=pk,
+            branch__client__owner=request.user
+        )
+
+        client = get_object_or_404(
+            Client,
+            owner=request.user
+        )
+
+        if request.method == "POST":
+
+            form = CustomerForm(
+                request.POST,
+                instance=customer
+            )
+
+            if "branch" in form.fields:
+
+                form.fields[
+                    "branch"
+                ].queryset = Branch.objects.filter(
+                    client=client
+                ).order_by(
+                    "name"
+                )
+
+            if form.is_valid():
+
+                updated_customer = form.save(
+                    commit=False
+                )
+
+                if updated_customer.branch.client_id != client.id:
+
+                    form.add_error(
+                        "branch",
+                        "You can only select a branch from your own company."
+                    )
+
+                else:
+
+                    updated_customer.save()
+
+                    messages.success(
+                        request,
+                        "Customer updated successfully."
+                    )
+
+                    return redirect(
+                        "customer_list"
+                    )
+
+        else:
+
+            form = CustomerForm(
+                instance=customer
+            )
+
+            if "branch" in form.fields:
+
+                form.fields[
+                    "branch"
+                ].queryset = Branch.objects.filter(
+                    client=client
+                ).order_by(
+                    "name"
+                )
+
+        return render(
+            request,
+            "magic_pro/customer/customer_form.html",
+            {
+                "form": form,
+                "title": "Edit Customer",
+                "customer": customer,
+            }
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    customer = get_object_or_404(
+        Customer,
+        pk=pk
+    )
+
+    if request.method == "POST":
+
+        form = CustomerForm(
+            request.POST,
+            instance=customer
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                "Customer updated successfully."
+            )
+
+            return redirect(
+                "customer_list"
+            )
+
+    else:
+
+        form = CustomerForm(
+            instance=customer
+        )
+
+    return render(
+        request,
+        "magic_pro/customer/customer_form.html",
+        {
+            "form": form,
+            "title": "Edit Customer",
+            "customer": customer,
+        }
+    )
+
+
+# =========================================================
+# DELETE CUSTOMER
+# =========================================================
+
+@login_required
+def customer_delete(request, pk):
+
+    if (
+        not is_admin_user(request.user)
+        and not is_owner_user(request.user)
+        and not is_branch_user(request.user)
+    ):
+        return redirect(
+            "owner_login"
+        )
+
+    # -----------------------------------------------------
+    # BRANCH USER
+    # -----------------------------------------------------
+
+    if is_branch_user(request.user):
+
+        branch = request.user.branch_profile
+
+        customer = get_object_or_404(
+            Customer,
+            pk=pk,
+            branch=branch
+        )
+
+    # -----------------------------------------------------
+    # OWNER
+    # -----------------------------------------------------
+
+    elif is_owner_user(request.user):
+
+        customer = get_object_or_404(
+            Customer,
+            pk=pk,
+            branch__client__owner=request.user
+        )
+
+    # -----------------------------------------------------
+    # SUPER ADMIN
+    # -----------------------------------------------------
+
+    else:
+
+        customer = get_object_or_404(
+            Customer,
+            pk=pk
+        )
+
+    customer.delete()
+
+    messages.success(
+        request,
+        "Customer deleted successfully."
+    )
+
+    return redirect(
+        "customer_list"
+    )

@@ -1,0 +1,596 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ title }} - Magic Pro
+{% endblock %}
+
+{% block page_title %}
+    {{ title }}
+{% endblock %}
+
+{% block page_subtitle %}
+    Manage area master data
+{% endblock %}
+
+{% block breadcrumb_active %}
+    Area
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ================================
+   AREA FORM
+================================ */
+
+.area-form-wrapper {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.area-form-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 28px;
+
+    box-shadow:
+        0 10px 30px rgba(15, 23, 42, 0.06),
+        0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+
+/* ================================
+   HEADER
+================================ */
+
+.area-form-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.area-form-icon {
+    width: 44px;
+    height: 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: linear-gradient(
+        135deg,
+        #eff6ff,
+        #dbeafe
+    );
+
+    border: 1px solid #bfdbfe;
+
+    color: #2563eb;
+    font-size: 22px;
+
+    flex-shrink: 0;
+}
+
+.area-form-heading {
+    min-width: 0;
+}
+
+.area-form-heading h2 {
+    margin: 0;
+
+    color: #0f172a;
+    font-size: 20px;
+    font-weight: 750;
+    line-height: 1.3;
+}
+
+.area-form-heading p {
+    margin: 4px 0 0;
+
+    color: #64748b;
+    font-size: 12px;
+}
+
+
+/* ================================
+   FORM
+================================ */
+
+.area-form {
+    width: 100%;
+}
+
+.area-form-group {
+    margin-bottom: 20px;
+}
+
+.area-form-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    margin-bottom: 7px;
+
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.required {
+    color: #dc2626;
+}
+
+
+/* ================================
+   INPUTS
+================================ */
+
+.area-form .form-control {
+    width: 100%;
+    min-height: 42px;
+
+    box-sizing: border-box;
+
+    padding: 10px 12px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #0f172a;
+
+    font-size: 13px;
+
+    outline: none;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+.area-form select.form-control {
+    cursor: pointer;
+    appearance: auto;
+}
+
+.area-form .form-control:hover {
+    border-color: #94a3b8;
+}
+
+.area-form .form-control:focus {
+    border-color: #2563eb;
+
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.10);
+
+    background: #ffffff;
+}
+
+.area-form .form-control::placeholder {
+    color: #94a3b8;
+}
+
+
+/* ================================
+   HELP TEXT
+================================ */
+
+.area-form-help {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    margin-top: 6px;
+
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+.area-form-help i {
+    color: #3b82f6;
+    font-size: 11px;
+}
+
+
+/* ================================
+   ERROR
+================================ */
+
+.area-form-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+
+    margin-top: 6px;
+
+    color: #dc2626;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.area-form-error i {
+    margin-top: 1px;
+    font-size: 12px;
+}
+
+
+/* ================================
+   SEPARATOR
+================================ */
+
+.area-form-separator {
+    height: 1px;
+
+    background: #e5e7eb;
+
+    margin: 4px 0 22px;
+}
+
+
+/* ================================
+   ACTIONS
+================================ */
+
+.area-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 26px;
+    padding-top: 20px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+
+/* ================================
+   BUTTONS
+================================ */
+
+.area-btn {
+    min-height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 17px;
+
+    border-radius: 9px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition:
+        transform .15s ease,
+        box-shadow .2s ease,
+        background .2s ease,
+        border-color .2s ease;
+}
+
+
+/* CANCEL */
+
+.area-btn-cancel {
+    background: #f8fafc;
+    color: #475569;
+
+    border: 1px solid #cbd5e1;
+}
+
+.area-btn-cancel:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #334155;
+
+    transform: translateY(-1px);
+}
+
+
+/* SAVE */
+
+.area-btn-save {
+    border: 1px solid #2563eb;
+
+    background: linear-gradient(
+        135deg,
+        #3b82f6,
+        #2563eb
+    );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 4px 12px rgba(37, 99, 235, 0.20);
+}
+
+.area-btn-save:hover {
+    background: linear-gradient(
+        135deg,
+        #2563eb,
+        #1d4ed8
+    );
+
+    box-shadow:
+        0 6px 16px rgba(37, 99, 235, 0.25);
+
+    transform: translateY(-1px);
+}
+
+.area-btn:active {
+    transform: translateY(0);
+}
+
+
+/* ================================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 700px) {
+
+    .area-form-card {
+        padding: 20px;
+        border-radius: 14px;
+    }
+
+    .area-form-header {
+        margin-bottom: 20px;
+        padding-bottom: 17px;
+    }
+
+    .area-form-heading h2 {
+        font-size: 18px;
+    }
+
+    .area-form-heading p {
+        font-size: 11px;
+    }
+
+    .area-form-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    .area-form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .area-btn {
+        width: 100%;
+    }
+}
+
+
+@media (max-width: 420px) {
+
+    .area-form-card {
+        padding: 16px;
+    }
+
+    .area-form-group {
+        margin-bottom: 16px;
+    }
+
+    .area-form .form-control {
+        min-height: 40px;
+        font-size: 12px;
+    }
+
+    .area-form-label {
+        font-size: 11px;
+    }
+
+}
+
+</style>
+
+
+<div class="area-form-wrapper">
+
+    <div class="area-form-card">
+
+        <!-- HEADER -->
+
+        <div class="area-form-header">
+
+            <div class="area-form-icon">
+
+                <i class="ph ph-map-pin-line"></i>
+
+            </div>
+
+            <div class="area-form-heading">
+
+                <h2>
+                    {{ title }}
+                </h2>
+
+                <p>
+                    Add or update area information
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- FORM -->
+
+        <form
+            method="POST"
+            class="area-form"
+        >
+
+            {% csrf_token %}
+
+
+            <!-- DISTRICT -->
+
+            <div class="area-form-group">
+
+                <label
+                    for="{{ form.district.id_for_label }}"
+                    class="area-form-label"
+                >
+
+                    District
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+
+                {{ form.district }}
+
+
+                {% if form.district.errors %}
+
+                    {% for error in form.district.errors %}
+
+                        <div class="area-form-error">
+
+                            <i class="ph ph-warning-circle"></i>
+
+                            <span>
+                                {{ error }}
+                            </span>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="area-form-help">
+
+                        <i class="ph ph-info"></i>
+
+                        Select the district for this area.
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- SEPARATOR -->
+
+            <div class="area-form-separator"></div>
+
+
+            <!-- AREA NAME -->
+
+            <div class="area-form-group">
+
+                <label
+                    for="{{ form.name.id_for_label }}"
+                    class="area-form-label"
+                >
+
+                    Area Name
+
+                    <span class="required">
+                        *
+                    </span>
+
+                </label>
+
+
+                {{ form.name }}
+
+
+                {% if form.name.errors %}
+
+                    {% for error in form.name.errors %}
+
+                        <div class="area-form-error">
+
+                            <i class="ph ph-warning-circle"></i>
+
+                            <span>
+                                {{ error }}
+                            </span>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="area-form-help">
+
+                        <i class="ph ph-info"></i>
+
+                        Enter the area or locality name.
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="area-form-actions">
+
+                <a
+                    href="{% url 'area_list' %}"
+                    class="area-btn area-btn-cancel"
+                >
+
+                    <i class="ph ph-x"></i>
+
+                    Cancel
+
+                </a>
+
+
+                <button
+                    type="submit"
+                    class="area-btn area-btn-save"
+                >
+
+                    <i class="ph ph-check-circle"></i>
+
+                    {% if "Edit" in title %}
+                        Update Area
+                    {% else %}
+                        Save Area
+                    {% endif %}
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

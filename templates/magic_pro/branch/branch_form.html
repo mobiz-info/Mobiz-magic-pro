@@ -1,0 +1,911 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block page_subtitle %}
+    Add or update branch information
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+.branch-form-page {
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+.branch-form-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 10px 35px rgba(15, 23, 42, 0.07);
+}
+
+.branch-form-header {
+    position: relative;
+    padding: 22px 26px;
+    background: linear-gradient(
+        135deg,
+        #eff6ff 0%,
+        #ffffff 65%
+    );
+    border-bottom: 1px solid #dbeafe;
+    overflow: hidden;
+}
+
+.branch-form-header::after {
+    content: "";
+    position: absolute;
+    width: 170px;
+    height: 170px;
+    right: -70px;
+    top: -85px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.07);
+}
+
+.branch-header-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.branch-header-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 21px;
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.22);
+}
+
+.branch-header-text h2 {
+    margin: 0 0 3px;
+    color: #0f172a;
+    font-size: 19px;
+    font-weight: 750;
+}
+
+.branch-header-text p {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.branch-form-body {
+    padding: 22px 26px 24px;
+}
+
+.branch-section {
+    margin-bottom: 20px;
+}
+
+.branch-section:last-child {
+    margin-bottom: 0;
+}
+
+.branch-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #1e3a8a;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.branch-section-heading i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+    height: 25px;
+    border-radius: 7px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 14px;
+}
+
+.branch-section-card {
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.branch-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px 16px;
+}
+
+.branch-form-group {
+    min-width: 0;
+}
+
+.branch-form-group.full {
+    grid-column: 1 / -1;
+}
+
+.branch-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.branch-required {
+    color: #dc2626;
+    margin-left: 2px;
+}
+
+.branch-form-control,
+.branch-form-group select,
+.branch-form-group input[type="text"],
+.branch-form-group input[type="email"],
+.branch-form-group input[type="password"] {
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 9px 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 12px;
+
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        background 0.18s ease;
+}
+
+.branch-form-control:hover,
+.branch-form-group select:hover,
+.branch-form-group input:hover {
+    border-color: #94a3b8;
+}
+
+.branch-form-control:focus,
+.branch-form-group select:focus,
+.branch-form-group input:focus {
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
+}
+
+.branch-form-group textarea {
+    width: 100%;
+    min-height: 72px;
+    box-sizing: border-box;
+    padding: 9px 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+    resize: vertical;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 12px;
+
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.branch-form-group textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.10);
+}
+
+
+/* PHONE */
+
+.branch-phone-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+.branch-phone-code {
+    min-width: 57px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+
+    border: 1px solid #bfdbfe;
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+
+    background: #eff6ff;
+    color: #2563eb;
+
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.branch-phone-code.empty {
+    background: #f8fafc;
+    border-color: #d1d5db;
+    color: #94a3b8;
+}
+
+.branch-phone-wrapper input {
+    flex: 1;
+    min-width: 0;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+
+/* STATUS */
+
+.branch-status-card {
+    min-height: 40px;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding: 0 11px;
+
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+
+    background: #f8fbff;
+}
+
+.branch-status-card input {
+    width: 16px;
+    height: 16px;
+
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+.branch-status-label {
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.branch-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #2563eb;
+}
+
+
+/* LOGIN NOTE */
+
+.branch-login-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+
+    margin-bottom: 13px;
+    padding: 9px 11px;
+
+    border-radius: 8px;
+    background: #f8fafc;
+
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.branch-login-note i {
+    margin-top: 1px;
+    color: #2563eb;
+    font-size: 14px;
+}
+
+
+/* HELP */
+
+.branch-help {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+
+/* ERRORS */
+
+.branch-error {
+    margin-top: 4px;
+    color: #dc2626;
+    font-size: 11px;
+}
+
+
+/* ACTION BAR */
+
+.branch-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 20px;
+    padding-top: 16px;
+
+    border-top: 1px solid #e2e8f0;
+}
+
+.branch-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    min-height: 38px;
+    padding: 0 16px;
+
+    border-radius: 8px;
+    text-decoration: none;
+    border: 1px solid transparent;
+
+    cursor: pointer;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    transition:
+        background 0.18s ease,
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.branch-btn-cancel {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #475569;
+}
+
+.branch-btn-cancel:hover {
+    background: #f1f5f9;
+}
+
+.branch-btn-save {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
+}
+
+.branch-btn-save:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.23);
+}
+
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+
+    .branch-form-body {
+        padding: 18px;
+    }
+
+    .branch-form-header {
+        padding: 18px;
+    }
+
+    .branch-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .branch-form-group.full {
+        grid-column: auto;
+    }
+
+    .branch-section-card {
+        padding: 13px;
+    }
+
+    .branch-form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .branch-btn {
+        width: 100%;
+    }
+}
+
+</style>
+
+
+<div class="branch-form-page">
+
+    <div class="branch-form-card">
+
+
+        <!-- HEADER -->
+
+        <div class="branch-form-header">
+
+            <div class="branch-header-content">
+
+                <div class="branch-header-icon">
+                    <i class="ph ph-buildings"></i>
+                </div>
+
+                <div class="branch-header-text">
+
+                    <h2>
+                        {{ title }}
+                    </h2>
+
+                    <p>
+                        Add or update branch information
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div class="branch-form-body">
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+
+                <!-- NON FIELD ERRORS -->
+
+                {% if form.non_field_errors %}
+
+                    {% for error in form.non_field_errors %}
+
+                        <div class="branch-error">
+                            {{ error }}
+                        </div>
+
+                    {% endfor %}
+
+                {% endif %}
+
+
+                <!-- BRANCH INFORMATION -->
+
+                <div class="branch-section">
+
+                    <div class="branch-section-heading">
+
+                        <i class="ph ph-buildings"></i>
+
+                        <span>
+                            Branch Information
+                        </span>
+
+                    </div>
+
+
+                    <div class="branch-section-card">
+
+                        <div class="branch-form-grid">
+
+
+                            <!-- COMPANY -->
+
+                            <div class="branch-form-group">
+
+                                <label
+                                    for="{{ form.client.id_for_label }}"
+                                    class="branch-label"
+                                >
+
+                                    Company
+
+                                    <span class="branch-required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                {{ form.client }}
+
+                                {% for error in form.client.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- BRANCH NAME -->
+
+                            <div class="branch-form-group">
+
+                                <label class="branch-label">
+
+                                    Branch Name
+
+                                    <span class="branch-required">
+                                        *
+                                    </span>
+
+                                </label>
+
+                                {{ form.name }}
+
+                                {% for error in form.name.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- PHONE -->
+
+                            <div class="branch-form-group">
+
+                                <label class="branch-label">
+                                    Phone Number
+                                </label>
+
+                                <div class="branch-phone-wrapper">
+
+                                    <span
+                                        id="branchPhoneCode"
+                                        class="branch-phone-code empty"
+                                    >
+                                        —
+                                    </span>
+
+                                    {{ form.phone }}
+
+                                </div>
+
+                                {% for error in form.phone.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- EMAIL -->
+
+                            <div class="branch-form-group">
+
+                                <label class="branch-label">
+                                    Branch Email
+                                </label>
+
+                                {{ form.email }}
+
+                                {% for error in form.email.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- ADDRESS -->
+
+                            <div class="branch-form-group full">
+
+                                <label class="branch-label">
+                                    Branch Address
+                                </label>
+
+                                {{ form.address }}
+
+                                {% for error in form.address.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- STATUS -->
+
+                            <div class="branch-form-group">
+
+                                <label class="branch-label">
+                                    Status
+                                </label>
+
+                                <div class="branch-status-card">
+
+                                    {{ form.status }}
+
+                                    <span class="branch-status-dot"></span>
+
+                                    <span class="branch-status-label">
+                                        Active Branch
+                                    </span>
+
+                                </div>
+
+                                {% for error in form.status.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- LOGIN -->
+
+                <div class="branch-section">
+
+                    <div class="branch-section-heading">
+
+                        <i class="ph ph-lock-key"></i>
+
+                        <span>
+                            Branch Login Details
+                        </span>
+
+                    </div>
+
+
+                    <div class="branch-section-card">
+
+                        <div class="branch-login-note">
+
+                            <i class="ph ph-info"></i>
+
+                            <span>
+                                Create login credentials for this branch.
+                                The branch user can use these credentials
+                                to access the branch account.
+                            </span>
+
+                        </div>
+
+
+                        <div class="branch-form-grid">
+
+
+                            <!-- USERNAME -->
+
+                            <div class="branch-form-group">
+
+                                <label class="branch-label">
+                                    Branch Login Username
+                                </label>
+
+                                {{ form.branch_username }}
+
+                                <div class="branch-help">
+                                    Username used for branch login.
+                                </div>
+
+                                {% for error in form.branch_username.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- PASSWORD -->
+
+                            <div class="branch-form-group">
+
+                                <label class="branch-label">
+                                    Branch Login Password
+                                </label>
+
+                                {{ form.branch_password }}
+
+                                <div class="branch-help">
+                                    Leave blank while editing to keep
+                                    the existing password.
+                                </div>
+
+                                {% for error in form.branch_password.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- CONFIRM PASSWORD -->
+
+                            <div class="branch-form-group">
+
+                                <label class="branch-label">
+                                    Confirm Branch Password
+                                </label>
+
+                                {{ form.branch_confirm_password }}
+
+                                {% for error in form.branch_confirm_password.errors %}
+
+                                    <div class="branch-error">
+                                        {{ error }}
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ACTIONS -->
+
+                <div class="branch-form-actions">
+
+                    <a
+                        href="{% url 'branch_list' %}"
+                        class="branch-btn branch-btn-cancel"
+                    >
+
+                        <i class="ph ph-x"></i>
+
+                        Cancel
+
+                    </a>
+
+
+                    <button
+                        type="submit"
+                        class="branch-btn branch-btn-save"
+                    >
+
+                        <i class="ph ph-check-circle"></i>
+
+                        {% if "Edit" in title %}
+                            Update Branch
+                        {% else %}
+                            Save Branch
+                        {% endif %}
+
+                    </button>
+
+                </div>
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- COUNTRY DIAL CODE -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const clientSelect =
+            document.getElementById(
+                "{{ form.client.id_for_label }}"
+            );
+
+        const phoneCode =
+            document.getElementById(
+                "branchPhoneCode"
+            );
+
+
+        if (!clientSelect || !phoneCode) {
+            return;
+        }
+
+
+        function updatePhoneCode() {
+
+            const selectedOption =
+                clientSelect.options[
+                    clientSelect.selectedIndex
+                ];
+
+
+            const dialCode =
+                selectedOption
+                    ? selectedOption.getAttribute(
+                        "data-dial-code"
+                    )
+                    : "";
+
+
+            if (dialCode) {
+
+                phoneCode.textContent =
+                    dialCode;
+
+                phoneCode.classList.remove(
+                    "empty"
+                );
+
+            } else {
+
+                phoneCode.textContent =
+                    "—";
+
+                phoneCode.classList.add(
+                    "empty"
+                );
+
+            }
+
+        }
+
+
+        updatePhoneCode();
+
+
+        clientSelect.addEventListener(
+            "change",
+            updatePhoneCode
+        );
+
+    }
+
+);
+
+</script>
+
+{% endblock %}

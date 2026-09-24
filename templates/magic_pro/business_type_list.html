@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+
+{% block title %}
+Business Types - Magic Pro
+{% endblock %}
+
+
+{% block page_title %}
+Business Types
+{% endblock %}
+
+
+{% block page_subtitle %}
+Manage business type master data
+{% endblock %}
+
+
+{% block content %}
+
+<div class="list-container">
+
+
+    <!-- =====================================================
+         HEADER
+    ===================================================== -->
+
+    <div class="list-header">
+
+
+        <!-- SEARCH -->
+
+        <form
+            method="GET"
+            class="search-wrapper"
+        >
+
+            <i class="ph ph-magnifying-glass search-icon"></i>
+
+            <input
+                type="text"
+                name="search"
+                value="{{ search }}"
+                placeholder="Search business types..."
+                class="search-input"
+            >
+
+        </form>
+
+
+        <!-- ADD -->
+
+        <a
+            href="{% url 'business_type_create' %}"
+            class="btn-create"
+        >
+
+            <i class="ph ph-plus"></i>
+
+            Add Business Type
+
+        </a>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         TABLE
+    ===================================================== -->
+
+    <div class="table-wrapper">
+
+        <table class="premium-table">
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        #
+                    </th>
+
+                    <th>
+                        Business Type
+                    </th>
+
+                    <th>
+                        Created Date
+                    </th>
+
+                    <th style="text-align:right;">
+                        Actions
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+
+                {% for business_type in page_obj %}
+
+
+                <tr>
+
+
+                    <!-- NUMBER -->
+
+                    <td style="color:#94a3b8;">
+
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+
+                    </td>
+
+
+                    <!-- BUSINESS TYPE -->
+
+                    <td>
+
+                        <div style="
+                            display:flex;
+                            align-items:center;
+                            gap:10px;
+                        ">
+
+
+                            <div style="
+                                width:34px;
+                                height:34px;
+                                border-radius:8px;
+                                background:#eff6ff;
+                                color:#2563eb;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                            ">
+
+                                <i class="ph ph-buildings"></i>
+
+                            </div>
+
+
+                            <span style="
+                                font-weight:600;
+                                color:#1e293b;
+                            ">
+
+                                {{ business_type.name }}
+
+                            </span>
+
+
+                        </div>
+
+                    </td>
+
+
+                    <!-- CREATED DATE -->
+
+                    <td>
+
+                        {{ business_type.created_at|date:"d M Y" }}
+
+                    </td>
+
+
+                    <!-- ACTIONS -->
+
+                    <td style="text-align:right;">
+
+                        <div style="
+                            display:flex;
+                            justify-content:flex-end;
+                            gap:8px;
+                        ">
+
+
+                            <!-- EDIT -->
+
+                            <a
+                                href="{% url 'business_type_edit' business_type.pk %}"
+                                class="action-btn edit"
+                                title="Edit"
+                            >
+
+                                <i class="ph ph-pencil-simple"></i>
+
+                            </a>
+
+
+                            <!-- DELETE -->
+
+                            <a
+                                href="{% url 'business_type_delete' business_type.pk %}"
+                                onclick="return confirm('Delete this business type?')"
+                                class="action-btn delete"
+                                title="Delete"
+                            >
+
+                                <i class="ph ph-trash"></i>
+
+                            </a>
+
+
+                        </div>
+
+                    </td>
+
+
+                </tr>
+
+
+                {% empty %}
+
+
+                <!-- EMPTY -->
+
+                <tr>
+
+                    <td colspan="4">
+
+                        <div class="empty-state">
+
+                            <i class="ph ph-buildings"></i>
+
+                            <div style="
+                                font-size:14px;
+                                font-weight:600;
+                                color:#64748b;
+                            ">
+                                No Business Types Found
+                            </div>
+
+                            <div style="
+                                font-size:12px;
+                                margin-top:5px;
+                            ">
+                                Add your first business type to get started.
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+
+                {% endfor %}
+
+
+            </tbody>
+
+
+        </table>
+
+    </div>
+
+
+    <!-- =====================================================
+         PAGINATION
+    ===================================================== -->
+
+    {% if page_obj.paginator.num_pages > 1 %}
+
+    <div class="pagination">
+
+
+        {% if page_obj.has_previous %}
+
+        <a
+            href="?page={{ page_obj.previous_page_number }}&search={{ search }}"
+            class="page-link"
+        >
+
+            Previous
+
+        </a>
+
+        {% endif %}
+
+
+        <span>
+
+            Page
+            {{ page_obj.number }}
+            of
+            {{ page_obj.paginator.num_pages }}
+
+        </span>
+
+
+        {% if page_obj.has_next %}
+
+        <a
+            href="?page={{ page_obj.next_page_number }}&search={{ search }}"
+            class="page-link"
+        >
+
+            Next
+
+        </a>
+
+        {% endif %}
+
+
+    </div>
+
+    {% endif %}
+
+
+</div>
+
+{% endblock %}
