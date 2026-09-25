@@ -993,54 +993,88 @@ def customer_event_list(request):
 # CREATE CUSTOMER EVENT
 # =========================================================
 
+
 @login_required
-def customer_event_create(request, customer_pk):
+def customer_event_create(request):
 
     if (
         not is_admin_user(request.user)
         and not is_owner_user(request.user)
         and not is_branch_user(request.user)
     ):
-        return redirect(
-            "owner_login"
-        )
+        return redirect("owner_login")
 
-    # -----------------------------------------------------
-    # BRANCH USER
-    # -----------------------------------------------------
+    customer = None
 
-    if is_branch_user(request.user):
+    mobile_number = request.GET.get(
+        "phone",
+        ""
+    ).strip()
 
-        customer = get_object_or_404(
-            Customer,
-            pk=customer_pk,
-            branch=request.user.branch_profile
-        )
+    # =====================================================
+    # SEARCH CUSTOMER BY MOBILE NUMBER
+    # =====================================================
 
-    # -----------------------------------------------------
-    # OWNER
-    # -----------------------------------------------------
+    if mobile_number:
 
-    elif is_owner_user(request.user):
+        # -------------------------------------------------
+        # BRANCH USER
+        # -------------------------------------------------
 
-        customer = get_object_or_404(
-            Customer,
-            pk=customer_pk,
-            branch__client__owner=request.user
-        )
+        if is_branch_user(request.user):
 
-    # -----------------------------------------------------
-    # SUPER ADMIN
-    # -----------------------------------------------------
+            customer = Customer.objects.filter(
+                phone=mobile_number,
+                branch=request.user.branch_profile
+            ).select_related(
+                "branch",
+                "branch__client"
+            ).first()
 
-    else:
+        # -------------------------------------------------
+        # OWNER
+        # -------------------------------------------------
 
-        customer = get_object_or_404(
-            Customer,
-            pk=customer_pk
-        )
+        elif is_owner_user(request.user):
+
+            customer = Customer.objects.filter(
+                phone=mobile_number,
+                branch__client__owner=request.user
+            ).select_related(
+                "branch",
+                "branch__client"
+            ).first()
+
+        # -------------------------------------------------
+        # SUPER ADMIN
+        # -------------------------------------------------
+
+        else:
+
+            customer = Customer.objects.filter(
+                phone=mobile_number
+            ).select_related(
+                "branch",
+                "branch__client"
+            ).first()
+
+    # =====================================================
+    # SAVE CUSTOMER EVENT
+    # =====================================================
 
     if request.method == "POST":
+
+        # Customer must exist before event is created
+        if not customer:
+
+            messages.error(
+                request,
+                "Please search and select a customer first."
+            )
+
+            return redirect(
+                f"/owner/customer-events/add/?phone={mobile_number}"
+            )
 
         form = CustomerEventForm(
             request.POST
@@ -1062,12 +1096,19 @@ def customer_event_create(request, customer_pk):
             )
 
             return redirect(
-                f"/owner/customer-events/?search={customer.phone}&customer={customer.id}"
+                f"/owner/customer-events/"
+                f"?search={customer.phone}"
+                f"&customer={customer.id}"
             )
 
     else:
 
         form = CustomerEventForm()
+
+
+    # =====================================================
+    # RENDER
+    # =====================================================
 
     return render(
         request,
@@ -1075,10 +1116,16 @@ def customer_event_create(request, customer_pk):
         {
             "form": form,
             "customer": customer,
+            "mobile_number": mobile_number,
+
+            "customer_not_found": bool(
+                mobile_number and not customer
+            ),
+
             "edit_mode": False,
         }
     )
-
+    
 
 # =========================================================
 # EDIT CUSTOMER EVENT
@@ -1295,6 +1342,9 @@ def build_customer_visit_message(customer):
 # =========================================================
 # CREATE CUSTOMER
 # =========================================================
+# =========================================================
+# CREATE CUSTOMER
+# =========================================================
 
 @login_required
 def customer_create(request):
@@ -1304,15 +1354,11 @@ def customer_create(request):
         and not is_owner_user(request.user)
         and not is_branch_user(request.user)
     ):
-        return redirect(
-            "owner_login"
-        )
+        return redirect("owner_login")
 
-    message_text = ""
-
-    # -----------------------------------------------------
+    # =====================================================
     # BRANCH USER
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_branch_user(request.user):
 
@@ -1320,9 +1366,23 @@ def customer_create(request):
 
         if request.method == "POST":
 
-            form = BranchCustomerForm(
-                request.POST
+            post_data = request.POST.copy()
+
+            # Branch is hidden in HTML for Branch User.
+            # Add the user's own branch automatically
+            # before form validation.
+            post_data["branch"] = branch.pk
+
+            form = CustomerForm(
+                post_data
             )
+
+            # Only user's own branch is allowed.
+            if "branch" in form.fields:
+
+                form.fields["branch"].queryset = Branch.objects.filter(
+                    pk=branch.pk
+                )
 
             if form.is_valid():
 
@@ -1330,15 +1390,10 @@ def customer_create(request):
                     commit=False
                 )
 
+                # Security: always force own branch.
                 customer.branch = branch
 
                 customer.save()
-
-                message_text = (
-                    build_customer_visit_message(
-                        customer
-                    )
-                )
 
                 messages.success(
                     request,
@@ -1351,22 +1406,32 @@ def customer_create(request):
 
         else:
 
-            form = BranchCustomerForm()
+            form = CustomerForm()
+
+            if "branch" in form.fields:
+
+                form.fields["branch"].queryset = Branch.objects.filter(
+                    pk=branch.pk
+                )
+
+                form.fields["branch"].initial = branch.pk
 
         return render(
             request,
-            "magic_pro/customer/branch_customer_form.html",
+            "magic_pro/customer/customer_form.html",
             {
                 "form": form,
                 "title": "Add Customer",
+                "customer": None,
+                "is_branch_user": True,
                 "branch": branch,
-                "message_text": message_text,
             }
         )
 
-    # -----------------------------------------------------
+
+    # =====================================================
     # OWNER
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_owner_user(request.user):
 
@@ -1375,11 +1440,25 @@ def customer_create(request):
             owner=request.user
         )
 
+        branches = Branch.objects.filter(
+            client=client,
+            status=True
+        ).select_related(
+            "client",
+            "client__country",
+        ).order_by(
+            "name"
+        )
+
         if request.method == "POST":
 
             form = CustomerForm(
                 request.POST
             )
+
+            if "branch" in form.fields:
+
+                form.fields["branch"].queryset = branches
 
             if form.is_valid():
 
@@ -1387,8 +1466,8 @@ def customer_create(request):
                     commit=False
                 )
 
-                # Owner can create Customer
-                # only under his own Company.
+                # Security check:
+                # Owner can only use his own company's branch.
                 if customer.branch.client_id != client.id:
 
                     form.add_error(
@@ -1399,12 +1478,6 @@ def customer_create(request):
                 else:
 
                     customer.save()
-
-                    message_text = (
-                        build_customer_visit_message(
-                            customer
-                        )
-                    )
 
                     messages.success(
                         request,
@@ -1419,16 +1492,9 @@ def customer_create(request):
 
             form = CustomerForm()
 
-        # Owner can see only his own Company's branches.
-        if "branch" in form.fields:
+            if "branch" in form.fields:
 
-            form.fields[
-                "branch"
-            ].queryset = Branch.objects.filter(
-                client=client
-            ).order_by(
-                "name"
-            )
+                form.fields["branch"].queryset = branches
 
         return render(
             request,
@@ -1436,13 +1502,24 @@ def customer_create(request):
             {
                 "form": form,
                 "title": "Add Customer",
-                "message_text": message_text,
+                "customer": None,
+                "is_branch_user": False,
             }
         )
 
-    # -----------------------------------------------------
+
+    # =====================================================
     # SUPER ADMIN
-    # -----------------------------------------------------
+    # =====================================================
+
+    branches = Branch.objects.filter(
+        status=True
+    ).select_related(
+        "client",
+        "client__country",
+    ).order_by(
+        "name"
+    )
 
     if request.method == "POST":
 
@@ -1450,15 +1527,13 @@ def customer_create(request):
             request.POST
         )
 
+        if "branch" in form.fields:
+
+            form.fields["branch"].queryset = branches
+
         if form.is_valid():
 
             customer = form.save()
-
-            message_text = (
-                build_customer_visit_message(
-                    customer
-                )
-            )
 
             messages.success(
                 request,
@@ -1473,17 +1548,24 @@ def customer_create(request):
 
         form = CustomerForm()
 
+        if "branch" in form.fields:
+
+            form.fields["branch"].queryset = branches
+
     return render(
         request,
         "magic_pro/customer/customer_form.html",
         {
             "form": form,
             "title": "Add Customer",
-            "message_text": message_text,
+            "customer": None,
+            "is_branch_user": False,
         }
     )
 
-
+# =========================================================
+# EDIT CUSTOMER
+# =========================================================
 # =========================================================
 # EDIT CUSTOMER
 # =========================================================
@@ -1496,13 +1578,12 @@ def customer_edit(request, pk):
         and not is_owner_user(request.user)
         and not is_branch_user(request.user)
     ):
-        return redirect(
-            "owner_login"
-        )
+        return redirect("owner_login")
 
-    # -----------------------------------------------------
+
+    # =====================================================
     # BRANCH USER
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_branch_user(request.user):
 
@@ -1516,10 +1597,22 @@ def customer_edit(request, pk):
 
         if request.method == "POST":
 
-            form = BranchCustomerForm(
-                request.POST,
+            post_data = request.POST.copy()
+
+            # Branch field is hidden for Branch User.
+            # Force their own branch into the form.
+            post_data["branch"] = branch.pk
+
+            form = CustomerForm(
+                post_data,
                 instance=customer
             )
+
+            if "branch" in form.fields:
+
+                form.fields["branch"].queryset = Branch.objects.filter(
+                    pk=branch.pk
+                )
 
             if form.is_valid():
 
@@ -1527,6 +1620,9 @@ def customer_edit(request, pk):
                     commit=False
                 )
 
+                # Security:
+                # Branch User can never move customer
+                # to another branch.
                 updated_customer.branch = branch
 
                 updated_customer.save()
@@ -1542,24 +1638,34 @@ def customer_edit(request, pk):
 
         else:
 
-            form = BranchCustomerForm(
+            form = CustomerForm(
                 instance=customer
             )
 
+            if "branch" in form.fields:
+
+                form.fields["branch"].queryset = Branch.objects.filter(
+                    pk=branch.pk
+                )
+
+                form.fields["branch"].initial = branch.pk
+
         return render(
             request,
-            "magic_pro/customer/branch_customer_form.html",
+            "magic_pro/customer/customer_form.html",
             {
                 "form": form,
                 "title": "Edit Customer",
-                "branch": branch,
                 "customer": customer,
+                "is_branch_user": True,
+                "branch": branch,
             }
         )
 
-    # -----------------------------------------------------
+
+    # =====================================================
     # OWNER
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_owner_user(request.user):
 
@@ -1574,6 +1680,16 @@ def customer_edit(request, pk):
             owner=request.user
         )
 
+        branches = Branch.objects.filter(
+            client=client,
+            status=True
+        ).select_related(
+            "client",
+            "client__country",
+        ).order_by(
+            "name"
+        )
+
         if request.method == "POST":
 
             form = CustomerForm(
@@ -1583,13 +1699,7 @@ def customer_edit(request, pk):
 
             if "branch" in form.fields:
 
-                form.fields[
-                    "branch"
-                ].queryset = Branch.objects.filter(
-                    client=client
-                ).order_by(
-                    "name"
-                )
+                form.fields["branch"].queryset = branches
 
             if form.is_valid():
 
@@ -1597,6 +1707,9 @@ def customer_edit(request, pk):
                     commit=False
                 )
 
+                # Security:
+                # Owner can only select branches
+                # belonging to his company.
                 if updated_customer.branch.client_id != client.id:
 
                     form.add_error(
@@ -1625,13 +1738,7 @@ def customer_edit(request, pk):
 
             if "branch" in form.fields:
 
-                form.fields[
-                    "branch"
-                ].queryset = Branch.objects.filter(
-                    client=client
-                ).order_by(
-                    "name"
-                )
+                form.fields["branch"].queryset = branches
 
         return render(
             request,
@@ -1640,16 +1747,27 @@ def customer_edit(request, pk):
                 "form": form,
                 "title": "Edit Customer",
                 "customer": customer,
+                "is_branch_user": False,
             }
         )
 
-    # -----------------------------------------------------
+
+    # =====================================================
     # SUPER ADMIN
-    # -----------------------------------------------------
+    # =====================================================
 
     customer = get_object_or_404(
         Customer,
         pk=pk
+    )
+
+    branches = Branch.objects.filter(
+        status=True
+    ).select_related(
+        "client",
+        "client__country",
+    ).order_by(
+        "name"
     )
 
     if request.method == "POST":
@@ -1658,6 +1776,10 @@ def customer_edit(request, pk):
             request.POST,
             instance=customer
         )
+
+        if "branch" in form.fields:
+
+            form.fields["branch"].queryset = branches
 
         if form.is_valid():
 
@@ -1678,6 +1800,10 @@ def customer_edit(request, pk):
             instance=customer
         )
 
+        if "branch" in form.fields:
+
+            form.fields["branch"].queryset = branches
+
     return render(
         request,
         "magic_pro/customer/customer_form.html",
@@ -1685,9 +1811,9 @@ def customer_edit(request, pk):
             "form": form,
             "title": "Edit Customer",
             "customer": customer,
+            "is_branch_user": False,
         }
     )
-
 
 # =========================================================
 # DELETE CUSTOMER

@@ -103,7 +103,7 @@ urlpatterns = [
     # =====================================================
 
     path("owner/customer-events/", operation_views.customer_event_list, name="customer_event_list"),
-    path("owner/customers/<int:customer_pk>/events/add/", operation_views.customer_event_create, name="customer_event_create"),
+    path("customer-events/add/",operation_views.customer_event_create,name="customer_event_create",),  
     path("owner/customer-events/<int:pk>/edit/", operation_views.customer_event_edit, name="customer_event_edit"),
     path("owner/customer-events/<int:pk>/delete/", operation_views.customer_event_delete, name="customer_event_delete"),
 

@@ -16,13 +16,9 @@
 
 <style>
 
-    /* =========================================
-       MAIN CONTAINER
-    ========================================== */
-
     .premium-form-container {
         width: 100%;
-        max-width: 950px;
+        max-width: 720px;
         margin: 0 auto;
         background: #ffffff;
         border-radius: 16px;
@@ -30,11 +26,6 @@
         box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
         border: 1px solid #e5e7eb;
     }
-
-
-    /* =========================================
-       TITLE
-    ========================================== */
 
     .premium-form-title {
         display: flex;
@@ -57,11 +48,6 @@
         margin-bottom: 20px;
     }
 
-
-    /* =========================================
-       FORM GRID
-    ========================================== */
-
     .form-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -78,11 +64,6 @@
         grid-column: 1 / -1;
     }
 
-
-    /* =========================================
-       LABEL
-    ========================================== */
-
     .form-label {
         margin-bottom: 5px;
         color: #334155;
@@ -93,11 +74,6 @@
     .required {
         color: #dc2626;
     }
-
-
-    /* =========================================
-       FORM CONTROL
-    ========================================== */
 
     .form-control {
         width: 100%;
@@ -122,57 +98,6 @@
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
     }
 
-
-    /* =========================================
-       PHONE NUMBER
-    ========================================== */
-
-    .phone-wrapper {
-        display: flex;
-        align-items: stretch;
-        width: 100%;
-        gap: 7px;
-    }
-
-    .phone-code-box {
-        flex: 0 0 82px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        min-height: 40px;
-        padding: 0 9px;
-        background: linear-gradient(
-            135deg,
-            #eff6ff,
-            #dbeafe
-        );
-        border: 1px solid #bfdbfe;
-        border-radius: 9px;
-        color: #1d4ed8;
-        font-size: 13px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .phone-code-box i {
-        font-size: 14px;
-    }
-
-    .phone-number-wrapper {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .phone-number-wrapper .form-control {
-        min-height: 40px;
-    }
-
-
-    /* =========================================
-       PHONE HELP
-    ========================================== */
-
     .phone-help {
         display: flex;
         align-items: center;
@@ -186,11 +111,6 @@
         color: #2563eb;
         font-size: 11px;
     }
-
-
-    /* =========================================
-       NOTIFICATION
-    ========================================== */
 
     .notification-box {
         display: flex;
@@ -213,7 +133,7 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        min-width: 105px;
+        min-width: 110px;
         padding: 9px 13px;
         border: 1px solid #cbd5e1;
         border-radius: 9px;
@@ -237,11 +157,6 @@
         box-shadow: 0 2px 7px rgba(37, 99, 235, 0.08);
     }
 
-
-    /* =========================================
-       ERRORS
-    ========================================== */
-
     .error-text {
         margin-top: 5px;
         color: #dc2626;
@@ -251,11 +166,6 @@
     .error-text i {
         margin-right: 3px;
     }
-
-
-    /* =========================================
-       FORM ACTIONS
-    ========================================== */
 
     .form-actions {
         display: flex;
@@ -310,11 +220,6 @@
         color: #ffffff;
     }
 
-
-    /* =========================================
-       MOBILE
-    ========================================== */
-
     @media (max-width: 700px) {
 
         .premium-form-container {
@@ -338,11 +243,6 @@
 
         .form-group.full-width {
             grid-column: auto;
-        }
-
-        .phone-code-box {
-            flex-basis: 76px;
-            font-size: 12px;
         }
 
         .notification-box {
@@ -369,28 +269,13 @@
         }
     }
 
-
-    /* =========================================
-       SMALL MOBILE
-    ========================================== */
-
     @media (max-width: 420px) {
 
         .premium-form-container {
             padding: 15px;
         }
 
-        .phone-wrapper {
-            gap: 5px;
-        }
-
-        .phone-code-box {
-            flex-basis: 70px;
-            padding: 0 6px;
-            font-size: 11px;
-        }
-
-        .phone-number-wrapper .form-control {
+        .form-control {
             font-size: 12px;
         }
     }
@@ -399,11 +284,6 @@
 
 
 <div class="premium-form-container">
-
-
-    <!-- =====================================
-         TITLE
-    ====================================== -->
 
     <div class="premium-form-title">
 
@@ -426,10 +306,6 @@
 
         {% csrf_token %}
 
-
-        <!-- =====================================
-             NON FIELD ERRORS
-        ====================================== -->
 
         {% if form.non_field_errors %}
 
@@ -455,67 +331,7 @@
         <div class="form-grid">
 
 
-            <!-- =================================
-                 BRANCH
-            ================================== -->
-
-            <div class="form-group">
-
-                <label
-                    for="{{ form.branch.id_for_label }}"
-                    class="form-label"
-                >
-
-                    Branch
-
-                    <span class="required">*</span>
-
-                </label>
-
-
-                <select
-                    name="{{ form.branch.name }}"
-                    id="{{ form.branch.id_for_label }}"
-                    class="form-control"
-                >
-
-                    {% for branch in form.branch.field.queryset %}
-
-                        <option
-                            value="{{ branch.pk }}"
-                            data-dial-code="{{ branch.client.country.dial_code|default:'' }}"
-                            {% if form.branch.value|stringformat:"s" == branch.pk|stringformat:"s" %}
-                                selected
-                            {% endif %}
-                        >
-
-                            {{ branch.name }}
-
-                        </option>
-
-                    {% endfor %}
-
-                </select>
-
-
-                {% for error in form.branch.errors %}
-
-                    <div class="error-text">
-
-                        <i class="ph ph-warning-circle"></i>
-
-                        {{ error }}
-
-                    </div>
-
-                {% endfor %}
-
-            </div>
-
-
-            <!-- =================================
-                 CUSTOMER NAME
-            ================================== -->
+            <!-- CUSTOMER NAME -->
 
             <div class="form-group">
 
@@ -549,9 +365,7 @@
             </div>
 
 
-            <!-- =================================
-                 MOBILE NUMBER
-            ================================== -->
+            <!-- MOBILE NUMBER -->
 
             <div class="form-group">
 
@@ -567,41 +381,14 @@
                 </label>
 
 
-                <div class="phone-wrapper">
-
-
-                    <!-- DIAL CODE -->
-
-                    <div
-                        class="phone-code-box"
-                        id="dialCodeBox"
-                    >
-
-                        <i class="ph ph-globe"></i>
-
-                        <span id="dialCode">
-                            +91
-                        </span>
-
-                    </div>
-
-
-                    <!-- LOCAL NUMBER -->
-
-                    <div class="phone-number-wrapper">
-
-                        {{ form.phone }}
-
-                    </div>
-
-                </div>
+                {{ form.phone }}
 
 
                 <div class="phone-help">
 
                     <i class="ph ph-info"></i>
 
-                    Country code is taken from the selected branch.
+                    Enter customer mobile number.
 
                 </div>
 
@@ -621,11 +408,9 @@
             </div>
 
 
-            <!-- =================================
-                 NOTIFICATION METHOD
-            ================================== -->
+            <!-- NOTIFICATION METHOD -->
 
-            <div class="form-group">
+            <div class="form-group full-width">
 
                 <label class="form-label">
 
@@ -664,6 +449,7 @@
 
                                 {% endif %}
 
+
                                 {{ radio.choice_label }}
 
                             </label>
@@ -693,9 +479,7 @@
         </div>
 
 
-        <!-- =====================================
-             ACTIONS
-        ====================================== -->
+        <!-- ACTIONS -->
 
         <div class="form-actions">
 
@@ -739,79 +523,5 @@
     </form>
 
 </div>
-
-
-<script>
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        const branchField =
-            document.getElementById(
-                "{{ form.branch.id_for_label }}"
-            );
-
-        const dialCode =
-            document.getElementById(
-                "dialCode"
-            );
-
-
-        function updateDialCode() {
-
-            if (!branchField || !dialCode) {
-                return;
-            }
-
-
-            const selectedOption =
-                branchField.options[
-                    branchField.selectedIndex
-                ];
-
-
-            if (!selectedOption) {
-
-                dialCode.textContent = "+91";
-
-                return;
-            }
-
-
-            const code =
-                selectedOption.dataset.dialCode;
-
-
-            if (code) {
-
-                dialCode.textContent = code;
-
-            } else {
-
-                dialCode.textContent = "+91";
-
-            }
-
-        }
-
-
-        if (branchField) {
-
-            branchField.addEventListener(
-                "change",
-                updateDialCode
-            );
-
-        }
-
-
-        updateDialCode();
-
-    }
-);
-
-</script>
-
 
 {% endblock %}
