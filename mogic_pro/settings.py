@@ -15,7 +15,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = ['http://68.183.94.11:555', 'http://68.183.94.11:87', 'http://68.183.94.11']
+CSRF_TRUSTED_ORIGINS = ['http://68.183.94.11:555', 'http://68.183.94.11:87', 'http://68.183.94.11:883', 'http://68.183.94.11']
 
 
 INSTALLED_APPS = [
