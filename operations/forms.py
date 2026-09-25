@@ -941,7 +941,6 @@ class BranchCustomerForm(forms.ModelForm):
 
         return phone
 
-
 class CustomerEventForm(forms.ModelForm):
 
     event_name = forms.ModelChoiceField(
@@ -997,10 +996,12 @@ class CustomerEventForm(forms.ModelForm):
             **kwargs
         )
 
+        # Active Event Names
         active_events = EventName.objects.filter(
             status=True
         ).order_by("name")
 
+        # Existing Event Name during Edit
         current_event_name_id = getattr(
             self.instance,
             "event_name_id",
@@ -1009,9 +1010,9 @@ class CustomerEventForm(forms.ModelForm):
 
         if current_event_name_id:
 
-            self.fields[
-                "event_name"
-            ].queryset = (
+            # Keep current event available even if
+            # it was made inactive after creation.
+            self.fields["event_name"].queryset = (
                 active_events
                 | EventName.objects.filter(
                     pk=current_event_name_id
@@ -1020,9 +1021,8 @@ class CustomerEventForm(forms.ModelForm):
 
         else:
 
-            self.fields[
-                "event_name"
-            ].queryset = active_events
+            # Add mode
+            self.fields["event_name"].queryset = active_events
 
     def clean_event_name(self):
 
@@ -1035,5 +1035,22 @@ class CustomerEventForm(forms.ModelForm):
             raise forms.ValidationError(
                 "Please select an event name."
             )
+
+        if not event_name.status:
+
+            current_event_name_id = getattr(
+                self.instance,
+                "event_name_id",
+                None
+            )
+
+            # Do not allow selecting an inactive
+            # Event Name for a new event.
+            if current_event_name_id != event_name.pk:
+
+                raise forms.ValidationError(
+                    "This Event Name is inactive. "
+                    "Please select an active Event Name."
+                )
 
         return event_name
