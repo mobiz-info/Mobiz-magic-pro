@@ -15,7 +15,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = ['http://68.183.94.11:555']
+CSRF_TRUSTED_ORIGINS = [
+    'http://68.183.94.11:883',
+    'http://68.183.94.11:555',
+    'http://68.183.94.11:87',
+    'http://68.183.94.11',
+    'http://127.0.0.1:8007',
+    'http://127.0.0.1:883',
+]
 
 
 INSTALLED_APPS = [
@@ -74,8 +81,13 @@ WSGI_APPLICATION = 'mogic_pro.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
+        
     }
 }
 
